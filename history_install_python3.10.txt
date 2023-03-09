@@ -1,0 +1,27 @@
+    1  sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev
+    2  wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz
+    3  tar -xf Python-3.10.0.tgz 
+    4  cd Python-3.10.0
+    5  ./configure --enable-optimizations
+    6  make -j 2
+    7  sudo make altinstall
+    8   python3.10 --version
+    9  sudo apt install python3-pip
+   10  sudo pip install numpy
+   11  sudo pip install beautifulsoup4
+   12  cd ..
+   13  git clone https://gitedu.hesge.ch/stefan.antun/math-plne.git
+   14  apt install git -y
+   15  https://gitedu.hesge.ch/stefan.antun/math-plne.git
+   16  ping 1.1.1.1
+   17  clear
+   18  git clone https://gitedu.hesge.ch/stefan.antun/math-plne.git
+   19  cd math-plne/
+   20  ls
+   21  wget https://cyberlearn.hes-so.ch/pluginfile.php/4102650/mod_folder/content/0/Instances/lp_glaces.txt
+   22  cat lp_glaces.txt 
+   23  nano lp_glaces.txt 
+   24  python3.10 main.py lp_glaces.txt 
+   25  python3.10 -m pip install numpy
+   26  python3.10 main.py lp_glaces.txt 
+   27  history > history_install_python3.10.txt
