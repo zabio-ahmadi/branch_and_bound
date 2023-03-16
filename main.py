@@ -10,4 +10,4 @@ from src.simplexe import Simplexe
 
 splx = Simplexe()
 # set log level to True to print intermediate tableaus
-splx.LoadFromFile(sys.argv[1], False)
+splx.LoadFromFile('examples/network05_lp.txt', False)
