@@ -83,71 +83,85 @@ class Simplexe:
         temp = self.__tableau
         last_column = temp[:-1, -1:]
 
-        for turns in range(len(temp) - 1):
+        # for turns in range(len(temp) - 1):
 
-            # Branchement
+        # Branchement
+        for i in range(self.index + 1, len(last_column)):
+            # print(last_column[i][0])
 
-            for i in range(self.index + 1, len(last_column)):
-                # print(last_column[i][0])
-                if isinstance(last_column[i][0], float):
-                    self.index = i
-                    break
+            if (abs(last_column[i][0]) - round(last_column[i][0]) > 1e-6):
+                self.index = i
+                break
+            # if isinstance(last_column[i][0], float):
+            #     self.index = i
+            #     break
 
-            left_tableau = self.create_bounds(self.__tableau, self.index, True)
-            right_tableau = self.create_bounds(
-                self.__tableau, self.index, False)
+        left_tableau = self.create_bounds(temp, self.index, True)
+        right_tableau = self.create_bounds(
+            temp, self.index, False)
 
-            list_node = [left_tableau, right_tableau]
+        list_node = [left_tableau, right_tableau]
 
-            z_PLNE = float('inf')
+        self.pretty_print(left_tableau)
 
-            while list_node:
-                # Récupération du prochain nœud à traiter
-                N = list_node.pop(0)
-                # Résolution de la relaxation linéaire
-                self.__tableau = N
+        self.pretty_print(right_tableau)
 
-                self.__solveProblem(True)
+        # exit(0)
+        z_PLNE = float('inf')
 
-                if z_PLNE >= self.ObjValue():
-                    z_PLNE = self.ObjValue()
-                else:
-                    continue
+        while list_node:
+            # Récupération du prochain nœud à traiter
+            temp2 = list_node.pop(0)
+            # Résolution de la relaxation linéaire
+            self.__tableau = temp2
 
-                last_column = self.__tableau[:-1, -1:]
+            self.__solveProblem(True)
 
-                # print(last_column)
+            if z_PLNE >= self.ObjValue():
+                z_PLNE = self.ObjValue()
+            else:
+                continue
 
-                foundSol = True
+            last_column = self.__tableau[:-1, -1:]
 
-                for x in last_column:
-                    if not isinstance(x[0], int):
+            foundSol = True
 
-                        foundSol = False
+            for x in last_column:
+                if not (abs(x[0]) - round(x[0]) <= 1e-6):
+                    foundSol = False
 
-                # if np.all(isinstance(x[0], int) for x in last_column):
+            # if np.all(isinstance(x[0], int) for x in last_column):
 
-                #     print("solution found")
-                #     self.pretty_print(self.__tableau)
-                #     sys.exit(0)
-                if foundSol:
-                    print("solution found")
-                    self.pretty_print(self.__tableau)
-                    sys.exit(0)
-                else:
-                    local_index = 0
-                    # Branchement
-                    for i, x in enumerate(last_column):
-                        if isinstance(x[0], float):
-                            local_index = i
-                            break
+            #     print("solution found")
+            #     self.pretty_print(self.__tableau)
+            #     sys.exit(0)
+            if foundSol:
+                print("solution found")
+                self.pretty_print(self.__tableau)
+                sys.exit(0)
+            else:
+                local_index = -1
+                max_fraction = -1
 
-                    left_tableau = self.create_bounds(
-                        self.__tableau, local_index, True)
-                    right_tableau = self.create_bounds(
-                        self.__tableau, local_index, False)
-                    list_node.append(left_tableau)
-                    list_node.append(right_tableau)
+                for i, x in enumerate(last_column):
+                    fraction = abs(x[0] - round(x[0]))
+                    if fraction > max_fraction:
+                        max_fraction = fraction
+                        local_index = i
+
+                # Branchement
+
+                # for i, x in enumerate(last_column):
+                #     if isinstance(x[0], float):
+                #         local_index = i
+                #         break
+
+                left_tableau = self.create_bounds(
+                    self.__tableau, local_index, True)
+                right_tableau = self.create_bounds(
+                    self.__tableau, local_index, False)
+                list_node.append(left_tableau)
+                list_node.append(right_tableau)
 
     ########################################### PLNE ###################################################
 
@@ -158,8 +172,6 @@ class Simplexe:
             self.__initTableau()
         if a:
             self.pretty_print(self.__tableau)
-            # self.NumRows = len(self.__tableau)
-            # self.NumCols = len(self.__tableau[0])
 
         # make sure we have a feasible solution - go to PhaseI
         # phase I runs only if
@@ -195,7 +207,7 @@ class Simplexe:
             print(
                 "-------------------------------------------------------------------------------")
         # print("Execution statistics")
-        # self.PrintSolution()
+        self.PrintSolution()
         # self.pretty_print(self.__tableau)
         if self.OptStatus == OptStatus.NotBounded:
             print("------------------------------------------------")
@@ -205,7 +217,9 @@ class Simplexe:
     def __performPivots(self):
         # we DO have a feasible solution - go on with the simplex
         while (self.OptStatus == OptStatus.Feasible):
-            self.__pivotTableau(self.__selectPivot(PivotMode.MostNegative))
+            ss = self.__selectPivot(PivotMode.MostNegative)
+            print("test", ss)
+            self.__pivotTableau(ss)
             # self.PrintTableau("After pivot")
 
     def PrintTableau(self, header):
@@ -478,8 +492,13 @@ class Simplexe:
                 return np.where(self.__tableau[-1, :-1] < -Constants.EPS)[0]
 
             case PivotMode.MostNegative:
+
                 # return index of MOST negative column that has negative reduced cost (i.e. negative value in LAST row) - except the LAST column
                 colId = self.__tableau[-1, :-1].argmin()
+
+                self.pretty_print(self.__tableau)
+                print(self.__tableau[-1, :-1])
+                print("colId=========", colId)
                 return colId if self.__tableau[-1, colId] < -Constants.EPS else -1
 
             case PivotMode.MaxGain:
