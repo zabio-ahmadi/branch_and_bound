@@ -7,16 +7,12 @@
 # cd
 # python c:\HEPIA\neg-teaching-material\Simplexe\main.py C:\HEPIA\neg-teaching-material\2022-2023\2e\lp_test.txt
 import numpy as np
-import os.path
 from os import path
 from src.constants import Constants, OptimizationType, OptStatus, PivotMode
 from src.lp import LP
 import time
 import sys
 from math import *
-
-from queue import PriorityQueue
-from typing import List, Tuple
 
 
 class Simplexe:
@@ -81,65 +77,60 @@ class Simplexe:
         self.__solveProblem(False)
 
         temp = self.__tableau
+
+        # todo : check for x index and find the first real which is not integer
+        # and branch
         last_column = temp[:-1, -1:]
 
-        # for turns in range(len(temp) - 1):
-
-        # Branchement
+        # find first float in the last column
         for i in range(self.index + 1, len(last_column)):
-            # print(last_column[i][0])
 
             if (abs(last_column[i][0]) - round(last_column[i][0]) > 1e-6):
                 self.index = i
                 break
-            # if isinstance(last_column[i][0], float):
-            #     self.index = i
-            #     break
 
+        # create a branches
         left_tableau = self.create_bounds(temp, self.index, True)
+
+        # create a branches
         right_tableau = self.create_bounds(
             temp, self.index, False)
 
         list_node = [left_tableau, right_tableau]
 
-        self.pretty_print(left_tableau)
-
-        self.pretty_print(right_tableau)
-
-        # exit(0)
-        z_PLNE = float('inf')
+        # value de fonction objective
+        z_PLNE = float('inf')  # infini
 
         while list_node:
             # Récupération du prochain nœud à traiter
-            temp2 = list_node.pop(0)
+            node = list_node.pop(0)
+
             # Résolution de la relaxation linéaire
-            self.__tableau = temp2
+            self.__tableau = node
 
-            self.__solveProblem(True)
+            self.__solveProblem(False)
 
+            # todo : check the final solution is integer for the give problem
             if z_PLNE >= self.ObjValue():
                 z_PLNE = self.ObjValue()
             else:
                 continue
 
             last_column = self.__tableau[:-1, -1:]
-
-            foundSol = True
-
+            isInteger = True
             for x in last_column:
-                if not (abs(x[0]) - round(x[0]) <= 1e-6):
-                    foundSol = False
+                if not isinstance(x[0], int):
+                    isInteger = False
 
-            # if np.all(isinstance(x[0], int) for x in last_column):
-
-            #     print("solution found")
-            #     self.pretty_print(self.__tableau)
-            #     sys.exit(0)
-            if foundSol:
+            # np.all(isinstance(x[0], int) for x in last_column)
+            # si tous les element de dernier column sont entier
+            if isInteger:
                 print("solution found")
                 self.pretty_print(self.__tableau)
                 sys.exit(0)
+
             else:
+
                 local_index = -1
                 max_fraction = -1
 
@@ -158,8 +149,10 @@ class Simplexe:
 
                 left_tableau = self.create_bounds(
                     self.__tableau, local_index, True)
+
                 right_tableau = self.create_bounds(
                     self.__tableau, local_index, False)
+
                 list_node.append(left_tableau)
                 list_node.append(right_tableau)
 
