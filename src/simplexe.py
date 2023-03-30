@@ -22,7 +22,7 @@ class Simplexe:
         self.__PivotCount = 0
         self.__PhaseIPivotCount = 0
         self.__PrintDetails = False
-        self.index = -1
+        self.index = []
 
     def LoadFromFile(self, lpFileName, printDetails):
         self.FileName = lpFileName
@@ -78,25 +78,31 @@ class Simplexe:
 
         temp = self.__tableau
 
-        # todo : check for x index and find the first real which is not integer
-        # and branch
+        # todo : check for x index and find the first real which is not integer and branch
         last_column = temp[:-1, -1:]
 
-        # find first float in the last column
-        for i in range(self.index + 1, len(last_column)):
+        # find x column
+        x_column = [index for index in range(
+            0, (self.NumRows - self.NumCols) + 1)]
 
-            if (abs(last_column[i][0]) - round(last_column[i][0]) > 1e-6):
-                self.index = i
-                break
+        for col in x_column:
+            for row in range(len(temp) - 1):
+                # find x floats in tableau
+                if temp[row][col] == 1 and (abs(temp[row][-1]) - abs(floor(temp[row][-1]))) > 1e-6:
+                    self.index.append(row)
 
         # create a branches
-        left_tableau = self.create_bounds(temp, self.index, True)
+        self.pretty_print(self.__tableau)
+        list_node = []
+        for line in self.index:
+            left_tableau = self.create_bounds(temp, line, True)
+            right_tableau = self.create_bounds(temp, line, False)
 
-        # create a branches
-        right_tableau = self.create_bounds(
-            temp, self.index, False)
+            list_node.append(left_tableau)
+            list_node.append(right_tableau)
 
-        list_node = [left_tableau, right_tableau]
+        # remove element from index list after its been done
+        self.index = []
 
         # value de fonction objective
         z_PLNE = float('inf')  # infini
@@ -116,10 +122,12 @@ class Simplexe:
             else:
                 continue
 
+            temp = self.__tableau
             last_column = self.__tableau[:-1, -1:]
             isInteger = True
+            # check if all elemnet in last column are integers
             for x in last_column:
-                if not isinstance(x[0], int):
+                if (abs(x[0]) - abs(floor(x[0]))) > 1e-6:
                     isInteger = False
 
             # np.all(isinstance(x[0], int) for x in last_column)
@@ -131,30 +139,25 @@ class Simplexe:
 
             else:
 
-                local_index = -1
-                max_fraction = -1
+                # find local x column
+                x_column = [index for index in range(
+                    0, (self.NumRows - self.NumCols) + 1)]
 
-                for i, x in enumerate(last_column):
-                    fraction = abs(x[0] - round(x[0]))
-                    if fraction > max_fraction:
-                        max_fraction = fraction
-                        local_index = i
+                for col in x_column:
+                    for row in range(len(temp) - 1):
+                        # find x floats in tableau
+                        if temp[row][col] == 1 and (abs(temp[row][-1]) - abs(floor(temp[row][-1]))) > 1e-6:
+                            self.index.append(row)
 
                 # Branchement
+                for line in self.index:
+                    left_tableau = self.create_bounds(temp, line, True)
+                    right_tableau = self.create_bounds(temp, line, False)
 
-                # for i, x in enumerate(last_column):
-                #     if isinstance(x[0], float):
-                #         local_index = i
-                #         break
+                    list_node.append(left_tableau)
+                    list_node.append(right_tableau)
 
-                left_tableau = self.create_bounds(
-                    self.__tableau, local_index, True)
-
-                right_tableau = self.create_bounds(
-                    self.__tableau, local_index, False)
-
-                list_node.append(left_tableau)
-                list_node.append(right_tableau)
+                self.index = []
 
     ########################################### PLNE ###################################################
 
@@ -211,7 +214,6 @@ class Simplexe:
         # we DO have a feasible solution - go on with the simplex
         while (self.OptStatus == OptStatus.Feasible):
             ss = self.__selectPivot(PivotMode.MostNegative)
-            print("test", ss)
             self.__pivotTableau(ss)
             # self.PrintTableau("After pivot")
 
@@ -433,7 +435,6 @@ class Simplexe:
         #
         pivotRowId = pivotIDs[0]
         pivotColId = pivotIDs[1]
-        # print("Pivot is ", pivotRowId, " ", pivotColId)
         pivotVal = self.__tableau[pivotRowId, pivotColId]
         # double-check pivot is actually positive
         if pivotVal < Constants.EPS:
@@ -488,10 +489,6 @@ class Simplexe:
 
                 # return index of MOST negative column that has negative reduced cost (i.e. negative value in LAST row) - except the LAST column
                 colId = self.__tableau[-1, :-1].argmin()
-
-                self.pretty_print(self.__tableau)
-                print(self.__tableau[-1, :-1])
-                print("colId=========", colId)
                 return colId if self.__tableau[-1, colId] < -Constants.EPS else -1
 
             case PivotMode.MaxGain:
