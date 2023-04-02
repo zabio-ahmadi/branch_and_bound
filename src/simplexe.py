@@ -38,14 +38,12 @@ class Simplexe:
         # self.__solveProblem()
         self.PLNE()
 
+    ########################################### PLNE ###################################################
+
     def pretty_print(self, tableau):
         np.set_printoptions(suppress=True, linewidth=200)
         np.savetxt(sys.stdout, tableau, fmt=f"%8.3f")
         print()
-
-    ########################################### PLNE ###################################################
-
-    ##
 
     def create_bounds(self, tableau, index, isLeft=True):
 
@@ -56,19 +54,27 @@ class Simplexe:
             abs = -1 * ceil(tableau[index][-1])
             new_line = [-1] + [0] * (len(tableau)) + [1] + [abs]
 
+        # tableau = np.delete(tableau, index, axis=0)
         tableau = np.hstack(
             (tableau[:, :-1], np.atleast_2d([0] * len(tableau)).T, tableau[:, -1:]))
+
+        # print("test")
+        # self.pretty_print(tableau)
+        # exit(0)
+
+        # self.pretty_print(tableau[:, :-1])
+        # self.pretty_print(np.atleast_2d([0] * len(tableau)).T)
+        # self.pretty_print(tableau[:, -1:])
+        # print(new_line)
 
         tableau = np.vstack(
             (tableau[:-1], new_line, tableau[-1:]))
 
         for i in range(len(tableau[index])):
             if isLeft == True:
-                tableau[-2][i] = tableau[-2][i] - \
-                    tableau[index][i]
+                tableau[-2][i] = tableau[-2][i] - tableau[index][i]
             if isLeft == False:
-                tableau[-2][i] = tableau[-2][i] + \
-                    tableau[index][i]
+                tableau[-2][i] = tableau[-2][i] + tableau[index][i]
 
         return tableau
 
@@ -76,14 +82,18 @@ class Simplexe:
 
         self.__solveProblem(False)
 
-        temp = self.__tableau
+        print((self.NumRows, self.NumCols))
 
+        temp = self.__tableau
         # todo : check for x index and find the first real which is not integer and branch
         last_column = temp[:-1, -1:]
 
         # find x column
         x_column = [index for index in range(
             0, (self.NumRows - self.NumCols) + 1)]
+
+        print(x_column)
+        exit(0)
 
         for col in x_column:
             for row in range(len(temp) - 1):
@@ -92,10 +102,11 @@ class Simplexe:
                     self.index.append(row)
 
         # create a branches
-        self.pretty_print(self.__tableau)
+        # self.pretty_print(self.__tableau)
         list_node = []
         for line in self.index:
             left_tableau = self.create_bounds(temp, line, True)
+
             right_tableau = self.create_bounds(temp, line, False)
 
             list_node.append(left_tableau)
@@ -114,11 +125,13 @@ class Simplexe:
             # Résolution de la relaxation linéaire
             self.__tableau = node
 
-            self.__solveProblem(False)
+            self.__solveProblem(True)
 
             # todo : check the final solution is integer for the give problem
+
             if z_PLNE >= self.ObjValue():
                 z_PLNE = self.ObjValue()
+
             else:
                 continue
 
@@ -130,7 +143,6 @@ class Simplexe:
                 if (abs(x[0]) - abs(floor(x[0]))) > 1e-6:
                     isInteger = False
 
-            # np.all(isinstance(x[0], int) for x in last_column)
             # si tous les element de dernier column sont entier
             if isInteger:
                 print("solution found")
@@ -157,17 +169,19 @@ class Simplexe:
                     list_node.append(left_tableau)
                     list_node.append(right_tableau)
 
+                    # self.pretty_print(left_tableau)
+                    # self.pretty_print(right_tableau)
+                    # exit(0)
                 self.index = []
 
     ########################################### PLNE ###################################################
 
     def __solveProblem(self, a=False):
-
         self.__start = time.time()
         if not a:
             self.__initTableau()
         if a:
-            self.pretty_print(self.__tableau)
+            self.__solvePhaseI(a)
 
         # make sure we have a feasible solution - go to PhaseI
         # phase I runs only if
@@ -189,6 +203,7 @@ class Simplexe:
                 print("------------------------------------------------")
                 # sys.exit()
                 return False
+
             else:
                 self.PrintTableau("Initial feasible solution")
         else:
@@ -202,9 +217,8 @@ class Simplexe:
             print("Found unbounded column => solution has no optimal solution")
             print(
                 "-------------------------------------------------------------------------------")
-        # print("Execution statistics")
+        print("Execution statistics")
         self.PrintSolution()
-        # self.pretty_print(self.__tableau)
         if self.OptStatus == OptStatus.NotBounded:
             print("------------------------------------------------")
             print("LP is UNBOUNDED!")
@@ -213,8 +227,7 @@ class Simplexe:
     def __performPivots(self):
         # we DO have a feasible solution - go on with the simplex
         while (self.OptStatus == OptStatus.Feasible):
-            ss = self.__selectPivot(PivotMode.MostNegative)
-            self.__pivotTableau(ss)
+            self.__pivotTableau(self.__selectPivot(PivotMode.MostNegative))
             # self.PrintTableau("After pivot")
 
     def PrintTableau(self, header):
@@ -327,10 +340,11 @@ class Simplexe:
         # the value of the basic variable is RHS / coeff in basic variable's colum
         return self.__tableau[rowId, -1] / self.__tableau[rowId, baseColId]
 
-    def __solvePhaseI(self):
+    def __solvePhaseI(self, a=False):
         # initializes and solves the Phase I simplexe automatically
         phaseISplx = Simplexe()
-        phaseISplx.initPhaseI(self)
+        if a == False:
+            phaseISplx.initPhaseI(self)
         # if optimal solution of Phase I is NOT 0 => problem has no feasible solution
         if phaseISplx.ObjValue() > Constants.EPS:
             self.OptStatus = OptStatus.Infeasible
@@ -435,6 +449,7 @@ class Simplexe:
         #
         pivotRowId = pivotIDs[0]
         pivotColId = pivotIDs[1]
+        # print("Pivot is ", pivotRowId, " ", pivotColId)
         pivotVal = self.__tableau[pivotRowId, pivotColId]
         # double-check pivot is actually positive
         if pivotVal < Constants.EPS:
