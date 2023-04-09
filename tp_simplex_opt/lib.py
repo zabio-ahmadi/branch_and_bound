@@ -300,19 +300,24 @@ class simplex:
         self.printSolution()
 
     def solvePhaseI(self):
+        # self.print_tableau(self.tableau)
         # solve phase I becuase we have negative value in B
-        if any(t < 0 for t in self.tableau[:-1, -1]):
-            for i in range(self.tableau.shape[0] - 1):
-                if self.tableau[i, -1] < 0:
-                    self.tableau[i] *= -1
+        for i in range(self.tableau.shape[0] - 1):
+            if self.tableau[i, -1] < 0:
+                self.tableau[i] *= -1
 
-            for col in range(self.tableau.shape[1]):
-                self.tableau[-1, col] = -1 * self.tableau[:-2, col].sum()
+        for col in range(self.tableau.shape[1] -1):
+            self.tableau[-1, col] = -1 * self.tableau[:-1, col].sum()
 
-            self.tableau = self.solveTableau(self.tableau)
+        # if self.type.upper() == 'MAX':
+        #     self.tableau[-1, -1] = -1 * self.tableau[:-2, -1].sum()
+        # else :
+        #     self.tableau[-1, -1] = self.tableau[:-2, -1].sum()
+        self.tableau = self.solveTableau(self.tableau)
 
-            # calculate obj fonc value
-            self.tableau[-1, -1] = self.tableau[:-2, -1].sum()
+        # self.print_tableau(self.tableau)
+        # calculate obj fonc value
+
 
     def PLNE(self):
 
@@ -355,6 +360,9 @@ class simplex:
         # value de fonction objective
         z_PLNE = float('inf')  # infini
 
+
+        list_sol = []
+
         while list_node:
             # Récupération du prochain nœud à traiter
             node = list_node.pop(0)
@@ -367,28 +375,29 @@ class simplex:
             self.tableau = self.solveTableau(self.tableau)
 
 
-            # todo : check the final solution is integer for the give problem
-            if z_PLNE > self.ObjValue():
-                z_PLNE = self.ObjValue()
-            else:
-                continue
+
 
             last_column = self.tableau[:-1, -1:]
 
             isInteger = True
             # check if all elemnet in last column are integers
             for x in last_column:
-                if not (x[0] - round(x[0])) < 1e-6:
+                if abs(x[0]) == np.inf and not (x[0] - round(x[0])) < 1e-6:
                     isInteger = False
 
             # si tous les element de dernier column sont entier
-            # if isInteger and not any(t < 0 for t in self.tableau[:-1, -1]):
-            if isInteger:
+            if isInteger and not any(t < 0 for t in self.tableau[:-1, -1]):
+                            # todo : check the final solution is integer for the give problem
+                if z_PLNE > self.ObjValue():
+                    z_PLNE = self.ObjValue()
+                else:
+                    continue
+            # if isInteger:
+                list_sol.append(self.tableau)
                 print("solution found")
                 self.print_tableau(self.tableau)
-                print("{:.2f}".format(self.ObjValue()))
+                print("OBJECTIVE VALUE : {:.2f}".format(self.ObjValue()))
                 sys.exit(0)
-
             else:
 
                 numCols = len(self.tableau[0])
@@ -410,21 +419,18 @@ class simplex:
                     right_tableau = self.create_bounds(self.tableau, line, False)
                     list_node.append(left_tableau)
                     list_node.append(right_tableau)
-
-                    # self.pretty_print(left_tableau)
-                    # self.pretty_print(right_tableau)
-                    # exit(0)
                 self.index = []
+        
 
     ########################################### PLNE ###################################################
 
     def ObjValue(self):
 
+        return self.tableau[-1, -1]
         if self.type.upper() == 'MAX':
            return -1 * self.tableau[-1, -1]
         else:
             return self.tableau[-1, -1]
-        # objVal = self.__tableau[-1, -1]
 
         # # phase I has no associated LP => we always have a min !
         # if self.IsPhaseI:

@@ -14,6 +14,6 @@ problems = [
     'lp_sample.txt'                 # 10
 ]
 
-simplex = simplex(problems[7])
+simplex = simplex(problems[1])
 simplex.debug(True)
 simplex.PLNE()
