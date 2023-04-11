@@ -7,7 +7,12 @@
 import sys
 from src.lp import LP
 from src.simplexe import Simplexe
+from src.BnB import BranchAndBound
 
-splx = Simplexe()
+#splx = Simplexe()
 # set log level to True to print intermediate tableaus
-splx.LoadFromFile(sys.argv[1], False)
+#splx.LoadFromFile(sys.argv[1], False)
+
+if "__main__" == __name__:
+  bb = BranchAndBound()
+  bb.go("examples/lp_sample.txt")
