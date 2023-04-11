@@ -23,6 +23,7 @@ class Simplexe:
     self.__PrintDetails = False
 
   def LoadFromFile(self, lpFileName, printDetails):
+    print("-----entering LoadFromFile")
     self.FileName = lpFileName
     self.__PrintDetails = printDetails == True
     self.LP = LP(lpFileName)
@@ -36,8 +37,9 @@ class Simplexe:
     self.__solveProblem()
   
   def __solveProblem(self):
+    print("-----entering __solveProblem", self.OptStatus)
     self.__start = time.time()
-    self.__initTableau()
+    if self.OptStatus == OptStatus.Unknown: self.__initTableau()
     # make sure we have a feasible solution - go to PhaseI
     # phase I runs only if 
     if (self.__isSolutionFeasible() != True):
@@ -74,6 +76,7 @@ class Simplexe:
           
   
   def __performPivots(self):
+    print("-----entering __performPivots")
     # we DO have a feasible solution - go on with the simplex
     while (self.OptStatus == OptStatus.Feasible):
       self.__pivotTableau(self.__selectPivot(PivotMode.MostNegative))
@@ -144,6 +147,7 @@ class Simplexe:
     return self.__padStr("z[{}]".format(colId - self.NumCols))
 
   def __initTableau(self):
+    print("-----entering __initTableau")
     # initializes the tableau from the previously loaded LP
     # tableau is
     # -------------
@@ -172,6 +176,7 @@ class Simplexe:
     
 
   def __isSolutionFeasible(self):
+    print("-----entering __isSolutionFeasible")
     # we MUST have that all BASIC variables are >= 0 to have a FEASIBLE solution - for that, check if there is a negative valued basic variable
     for rowId, baseColId in enumerate(self.__basicVariables):
         if self.__getBasicVariableValue(rowId, baseColId) < -Constants.EPS:
@@ -184,7 +189,8 @@ class Simplexe:
       # the value of the basic variable is RHS / coeff in basic variable's colum
       return self.__tableau[rowId, -1] / self.__tableau[rowId, baseColId]
 
-  def __solvePhaseI(self):    
+  def __solvePhaseI(self):   
+    print("-----entering __solvePhaseI") 
     # initializes and solves the Phase I simplexe automatically
     phaseISplx = Simplexe()
     phaseISplx.initPhaseI(self)
@@ -203,6 +209,7 @@ class Simplexe:
     # -> append the objective row - previous last row of PhaseI tableau
     self.__tableau = np.append(self.__tableau, np.array([phaseISplx.__tableau[-2, 0:self.NumCols+self.NumRows]]), axis=0)
     # -> append the RHS for all except the last row
+    tmp1 = np.array([phaseISplx.__tableau[0:-1, -1]]).T
     self.__tableau = np.append(self.__tableau, np.array([phaseISplx.__tableau[0:-1, -1]]).T, axis=1)
     # finally the basic variables indices
     self.__basicVariables = phaseISplx.__basicVariables[0:-1]
@@ -210,6 +217,7 @@ class Simplexe:
     self.OptStatus = OptStatus.Feasible
 
   def initPhaseI(self, simplexe):
+    print("-----entering initPhaseI")
     # create augmented tableau for Phase I => current
    	# -- Original -----		# -- Auxiliary -----
     # | A | I | b |			  | A | I | I | b |
@@ -256,6 +264,7 @@ class Simplexe:
     self.__performPivots()
 
   def RemoveAuxiliaryBasicVariables(self):
+    print("-----entering RemoveAuxiliaryBasicVariables")
     # after resolving PhaseI, we might still have some auxiliary varaibles in the current basis
     # if so, make sure we remove them - they always have index >= initial number of columns (i.e. self.NumCols here)
     maxId = np.argmax(self.__basicVariables)
@@ -275,6 +284,7 @@ class Simplexe:
     self.__end = time.time()
 
   def __pivotTableau(self, pivotIDs):
+    print("-----entering __pivotTableau")
     if pivotIDs is None or pivotIDs[0] < 0 or pivotIDs[1] < 0:
       # no pivot => optimiser status is updated in pivot selection => return!
       return
@@ -308,7 +318,7 @@ class Simplexe:
 
   # returns next pivot as an array of leaving row id and entering col Id - argument is the pivot mode (one of PivotMode enum)
   # return None if there is pivot (sets optimisation status accoringly before returning)
-  def __selectPivot(self, pivotMode):    
+  def __selectPivot(self, pivotMode):  
     colId = self.__selectEnteringColumn(pivotMode)
     if (colId < 0):
       # no more entering column => optimiser status is OPTIMAL (must be - we never select a pivot if the tableau is unfeasible)

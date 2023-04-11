@@ -19,6 +19,8 @@ class BranchAndBound(Simplexe):
         self.__PrintDetails = printDetails
         self.LoadFromFile(lpFileName, printDetails)
         self.PLNE()
+        print("------------- finish PLNE")
+        self.PrintSolution()
 
     def solvePhase1_v2(self):
         phaseISplx = Simplexe()
@@ -28,10 +30,11 @@ class BranchAndBound(Simplexe):
             return
         if self.__PrintDetails:
             phaseISplx.PrintTab("Optimal solution Phase I")
-        #phaseISplx.RemoveAuxiliaryBasicVariables()
+        phaseISplx.RemoveAuxiliaryBasicVariables()
         phaseISplx.PrintSolution()
         self._Simplexe__tableau = phaseISplx._Simplexe__tableau[0:self.NumRows, 0:self.NumCols+self.NumRows]
         self._Simplexe__tableau = np.append(self._Simplexe__tableau, np.array([phaseISplx._Simplexe__tableau[-2, 0:self.NumCols+self.NumRows]]), axis=0)
+        tmp1 = np.array([phaseISplx._Simplexe__tableau[0:-1, -1]]).T
         self._Simplexe__tableau = np.append(self._Simplexe__tableau, np.array([phaseISplx._Simplexe__tableau[0:-1, -1]]).T, axis=1)
         self._Simplexe__basicVariables = phaseISplx._Simplexe__basicVariables[0:-1]
         self._Simplexe__PhaseIPivotCount = phaseISplx._Simplexe__PivotCount
@@ -107,11 +110,12 @@ class BranchAndBound(Simplexe):
         list_node = []
 
         for line in self.index:
-            left_tableau = self.create_bounds(temp, line, True)
-            right_tableau = self.create_bounds(temp, line, False)
+            left_tableau = self.create_bounds(np.copy(temp), line, True)
+            right_tableau = self.create_bounds(np.copy(temp), line, False)
+            NumRowsCols = (self.NumRows + 1, self.NumCols + 1)
 
-            list_node.append(left_tableau)
-            list_node.append(right_tableau)
+            list_node.append((left_tableau, NumRowsCols))
+            list_node.append((right_tableau, NumRowsCols))
 
         self.index = []
 
@@ -119,7 +123,8 @@ class BranchAndBound(Simplexe):
         list_sol = []
 
         while list_node:
-            self._Simplexe__tableau = node = list_node.pop(0)
+            self._Simplexe__tableau, NumRowsCols = list_node.pop(0)
+            self.NumRows, self.NumCols = NumRowsCols[0], NumRowsCols[1]
             #temp, added_constraints = node = list_node.pop(0)
             #self._Simplexe__tableau = np.copy(temp)
 
@@ -128,16 +133,21 @@ class BranchAndBound(Simplexe):
             #    self._Simplexe__tableau = np.vstack((self._Simplexe__tableau[:-1], constraint, self._Simplexe__tableau[-1:]))
 
             self._Simplexe__iteration = 0
-            self.solvePhase1_v2()
+            self._Simplexe__solveProblem()
             #self._Simplexe__solvePhaseI()
-            self._Simplexe__tableau = self._Simplexe__solveTableau(self._Simplexe__tableau)
+            #self._Simplexe__tableau = self._Simplexe__solveProblem(self._Simplexe__tableau)
 
             last_column = self._Simplexe__tableau[:-1, -1:]
+            objval = self.ObjValue()
+            if objval < 1e-6:
+                isInteger = True
+            else:
+                isInteger = False
 
-            isInteger = True
-            for x in last_column:
-                if abs(x[0]) == np.inf and not (x[0] - round(x[0])) < 1e-6:
-                    isInteger = False
+            #isInteger = True
+            #for x in last_column:
+            #    if abs(x[0]) == np.inf and not (x[0] - round(x[0])) < 1e-6:
+            #        isInteger = False
 
             if isInteger and not any(t < 0 for t in self._Simplexe__tableau[:-1, -1]):
                 z_PLNE = min(z_PLNE, self.ObjValue())
@@ -154,10 +164,11 @@ class BranchAndBound(Simplexe):
                   if self._Simplexe__tableau[row][col] == 1 and (abs(self._Simplexe__tableau[row][-1]) - abs(floor(self._Simplexe__tableau[row][-1]))) > 1e-6:
                    self.index.append(row)
             for line in self.index:
-                left_tableau = self.create_bounds(self._Simplexe__tableau, line, True)
-                right_tableau = self.create_bounds(self._Simplexe__tableau, line, False)
-                list_node.append(left_tableau)
-                list_node.append(right_tableau)
+                left_tableau = self.create_bounds(np.copy(self._Simplexe__tableau), line, True)
+                right_tableau = self.create_bounds(np.copy(self._Simplexe__tableau), line, False)
+                NumRowsCols = (self.NumRows + 1, self.NumCols + 1)
+                list_node.append((left_tableau, NumRowsCols))
+                list_node.append((right_tableau, NumRowsCols))
                 #left_constraint = self.create_bounds(self._Simplexe__tableau, line, True)
                 #right_constraint = self.create_bounds(self._Simplexe__tableau, line, False)
                 #list_node.append((temp, added_constraints + [left_constraint]))
