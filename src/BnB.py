@@ -13,16 +13,16 @@ class BranchAndBound(Simplexe):
     def __init__(self):
         super().__init__()
         self.index = []
-    
+
     def go(self, lpFileName, printDetails=False):
         self.LoadFromFile(lpFileName, printDetails)
         self.PLNE()
-   
+
     def solvePhase1_v2(self):
         phaseISplx = Simplexe()
         self.initPhaseI_v2(phaseISplx)
-        if phaseISplx.ObjValue() > Const.EPS:
-            self.OptStatus = Status.Infeasible
+        if phaseISplx.ObjValue() > Constants.EPS:
+            self.OptStatus = OptStatus.Infeasible
             return
         if self.__PrintDetails:
             phaseISplx.PrintTab("Optimal solution Phase I")
@@ -33,12 +33,12 @@ class BranchAndBound(Simplexe):
         self._Simplexe__tab = np.append(self._Simplexe__tab, np.array([phaseISplx._Simplexe__tab[0:-1, -1]]).T, axis=1)
         self._Simplexe__basicVars = phaseISplx._Simplexe__basicVars[0:-1]
         self._Simplexe__PhaseIPivotCount = phaseISplx._Simplexe__PivotCount
-        self.OptStatus = Status.Feasible
-   
+        self.OptStatus = OptStatus.Feasible
+
     def initPhaseI_v2(self, phaseISplx):
         phaseISplx.IsPhaseI, phaseISplx._Simplexe__start = True, time.time()
         phaseISplx.NumRows, phaseISplx.NumCols = self.NumRows + 1, self.NumCols + self.NumRows
-        phaseISplx.OptStatus = Status.Feasible
+        phaseISplx.OptStatus = OptStatus.Feasible
         tmpCopy = self._Simplexe__tab.copy()
         phaseISplx._Simplexe__tab = tmpCopy[0:-1,0:-1]
         phaseISplx._Simplexe__tab = np.append(phaseISplx._Simplexe__tab, np.identity(self.NumRows), axis=1)
