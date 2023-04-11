@@ -130,7 +130,7 @@ class Simplexe:
     print("Objective Value     : ", self.ObjValue())
     print("Nbr pivots Phase I  : ", self.__PhaseIPivotCount)
     print("Nbr pivots Phase II : ", self.__PivotCount)
-    print("Total exec time [s] : ", self.__end - self.__start)
+    #print("Total exec time [s] : ", self.__end - self.__start)
     print("------------------------------------------------")
 
   def __padStr(self, str):

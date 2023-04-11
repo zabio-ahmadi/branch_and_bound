@@ -16,6 +16,7 @@ class BranchAndBound(Simplexe):
         self.index = []
 
     def go(self, lpFileName, printDetails=False):
+        self.__PrintDetails = printDetails
         self.LoadFromFile(lpFileName, printDetails)
         self.PLNE()
 
@@ -27,22 +28,23 @@ class BranchAndBound(Simplexe):
             return
         if self.__PrintDetails:
             phaseISplx.PrintTab("Optimal solution Phase I")
-        phaseISplx.RemoveAuxiliaryBasicVariables()
+        #phaseISplx.RemoveAuxiliaryBasicVariables()
         phaseISplx.PrintSolution()
         self._Simplexe__tableau = phaseISplx._Simplexe__tableau[0:self.NumRows, 0:self.NumCols+self.NumRows]
         self._Simplexe__tableau = np.append(self._Simplexe__tableau, np.array([phaseISplx._Simplexe__tableau[-2, 0:self.NumCols+self.NumRows]]), axis=0)
         self._Simplexe__tableau = np.append(self._Simplexe__tableau, np.array([phaseISplx._Simplexe__tableau[0:-1, -1]]).T, axis=1)
-        self._Simplexe__basicVars = phaseISplx._Simplexe__basicVars[0:-1]
+        self._Simplexe__basicVariables = phaseISplx._Simplexe__basicVariables[0:-1]
         self._Simplexe__PhaseIPivotCount = phaseISplx._Simplexe__PivotCount
         self.OptStatus = OptStatus.Feasible
 
     def initPhaseI_v2(self, phaseISplx):
         phaseISplx.IsPhaseI, phaseISplx._Simplexe__start = True, time.time()
-        phaseISplx.NumRows, phaseISplx.NumCols = self.NumRows + 1, self.NumCols + self.NumRows
+        phaseISplx.NumRows, phaseISplx.NumCols = self.NumRows + 1, self.NumCols + self.NumRows + 2
         phaseISplx.OptStatus = OptStatus.Feasible
         tmpCopy = self._Simplexe__tableau.copy()
-        phaseISplx._Simplexe__tableau = np.array(tmpCopy)[0:-1, 0:-1]
-        phaseISplx._Simplexe__tableau = np.append(phaseISplx._Simplexe__tableau, np.identity(self.NumRows), axis=1)
+        phaseISplx._Simplexe__tableau = tmpCopy[0:-1,0:-1]
+        idnty = np.identity(phaseISplx.NumRows)
+        phaseISplx._Simplexe__tableau = np.append(phaseISplx._Simplexe__tableau, idnty, axis=1)
         phaseISplx._Simplexe__tableau = np.append(phaseISplx._Simplexe__tableau, np.array([tmpCopy[0:-1, -1]]).T, axis=1)
         objRowOriginal, objRowNew = np.zeros(phaseISplx.NumRows + phaseISplx.NumCols, dtype=float), np.zeros(phaseISplx.NumRows + phaseISplx.NumCols, dtype=float)
         for iCol in range(phaseISplx.NumCols):
@@ -51,13 +53,13 @@ class BranchAndBound(Simplexe):
         objRowNew[-1] = -np.sum(phaseISplx._Simplexe__tableau[:, -1])
         phaseISplx._Simplexe__tableau = np.append(phaseISplx._Simplexe__tableau, np.array([objRowOriginal]), axis=0)
         phaseISplx._Simplexe__tableau = np.append(phaseISplx._Simplexe__tableau, np.array([objRowNew]), axis=0)
-        phaseISplx._Simplexe__basicVars = np.arange(phaseISplx.NumCols, phaseISplx.NumCols + phaseISplx.NumRows, 1, dtype=int)
-        phaseISplx._Simplexe__basicVars[-1] = -1
-        phaseISplx.TabRowCount, phaseISplx.TabColCount = phaseISplx._Simplexe__tableau.shape
+        phaseISplx._Simplexe__basicVariables = np.arange(phaseISplx.NumCols, phaseISplx.NumCols + phaseISplx.NumRows, 1, dtype=int)
+        phaseISplx._Simplexe__basicVariables[-1] = -1
+        phaseISplx.TableauRowCount, phaseISplx.TableauColCount = phaseISplx._Simplexe__tableau.shape
         if phaseISplx._Simplexe__PrintDetails: phaseISplx.PrintTab("Phase 1 Tab")
         phaseISplx._Simplexe__performPivots()
 
-    def create_bounds(self, tableau, index, isLeft=True):
+    def create_bounds1(self, tableau, index, isLeft=True):
         if isLeft:
             abs_val = floor(tableau[index][-1])
             new_line = [1] + [0] * (len(tableau[0]) - 2) + [1] + [abs_val]
@@ -65,6 +67,27 @@ class BranchAndBound(Simplexe):
             abs_val = -1 * ceil(tableau[index][-1])
             new_line = [-1] + [0] * (len(tableau[0]) - 2) + [1] + [abs_val]
         return new_line
+    def create_bounds(self, tableau, index, isLeft=True):
+
+        if isLeft == True:
+            abs = floor(tableau[index][-1])
+            new_line = [1] + [0] * (len(tableau[0]) - 2) + [1] + [abs]
+
+        if isLeft == False:
+            abs = -1 * ceil(tableau[index][-1])
+            new_line = [-1] + [0] * (len(tableau[0]) - 2) + [1] + [abs]
+
+        #tableau = np.delete(tableau, index, axis=0)
+        tableau = np.hstack((tableau[:, :-1], np.atleast_2d([0] * len(tableau)).T, tableau[:, -1:]))
+
+        tableau = np.vstack((tableau[:-1], new_line, tableau[-1:]))
+
+        for i in range(len(tableau[index])):
+            if isLeft == True:
+                tableau[-2][i] = tableau[-2][i] - tableau[index][i]
+            if isLeft == False:
+                tableau[-2][i] = tableau[-2][i] + tableau[index][i]
+        return tableau
 
     def PLNE(self):
         numCols = len(self._Simplexe__tableau[0])
