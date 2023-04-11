@@ -41,7 +41,7 @@ class BranchAndBound(Simplexe):
         phaseISplx.NumRows, phaseISplx.NumCols = self.NumRows + 1, self.NumCols + self.NumRows
         phaseISplx.OptStatus = OptStatus.Feasible
         tmpCopy = self._Simplexe__tableau.copy()
-        phaseISplx._Simplexe__tableau = tmpCopy[0:-1,0:-1]
+        phaseISplx._Simplexe__tableau = np.array(tmpCopy)[0:-1, 0:-1]
         phaseISplx._Simplexe__tableau = np.append(phaseISplx._Simplexe__tableau, np.identity(self.NumRows), axis=1)
         phaseISplx._Simplexe__tableau = np.append(phaseISplx._Simplexe__tableau, np.array([tmpCopy[0:-1, -1]]).T, axis=1)
         objRowOriginal, objRowNew = np.zeros(phaseISplx.NumRows + phaseISplx.NumCols, dtype=float), np.zeros(phaseISplx.NumRows + phaseISplx.NumCols, dtype=float)
@@ -106,6 +106,7 @@ class BranchAndBound(Simplexe):
 
             self._Simplexe__iteration = 0
             self.solvePhase1_v2()
+            #self._Simplexe__solvePhaseI()
             self._Simplexe__tableau = self._Simplexe__solveTableau(self._Simplexe__tableau)
 
             last_column = self._Simplexe__tableau[:-1, -1:]
