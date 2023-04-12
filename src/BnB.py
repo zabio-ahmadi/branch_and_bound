@@ -49,84 +49,77 @@ class BranchAndBound(Simplexe):
         tableau._Simplexe__basicVariables = np.arange(tableau.NumCols, tableau.NumCols + tableau.NumRows, 1, dtype=int)
         return tableau
 
+
+
+
+
     def PLNE(self):
+        def is_almost_integer(num, threshold=0.0001):
+            return abs(num - round(num)) <= threshold
+        def update_nodes(node, list_node):
+            x_column = list(range(len(node._Simplexe__tableau[0]) - len(node._Simplexe__tableau)))
+
+            for col in x_column:
+                for row in range(len(node._Simplexe__tableau) - 1):
+                    if node._Simplexe__tableau[row][col] == 1 and (abs(node._Simplexe__tableau[row][-1]) - abs(floor(node._Simplexe__tableau[row][-1]))) > 1e-6:
+                        node.index.append(row)
+
+            for line in node.index:
+                left_tableau = self.create_bounds(deepcopy(node), line, True)
+                right_tableau = self.create_bounds(deepcopy(node), line, False)
+                list_node.append(left_tableau)
+                list_node.append(right_tableau)
+
+            node.index = []
+            return list_node
+
         numRows, numCols = self._Simplexe__tableau.shape
-
         temp_node = deepcopy(self)
-        last_column = temp_node._Simplexe__tableau[:-1, -1:]
-        
 
-        x_column = list(range(numCols - numRows))
-
-        for col in x_column:
-            for row in range(temp_node._Simplexe__tableau.shape[0] - 1):
-                if temp_node._Simplexe__tableau[row][col] == 1 and (abs(temp_node._Simplexe__tableau[row][-1]) - abs(floor(temp_node._Simplexe__tableau[row][-1]))) > 1e-6:
-                    self.index.append(row)
-
-        #list_node = [(temp, [])]
         list_node = []
-
-        for line in self.index:
-            left_tableau = self.create_bounds(deepcopy(temp_node), line, True)
-            right_tableau = self.create_bounds(deepcopy(temp_node), line, False)
-
-            list_node.append(left_tableau)
-            list_node.append(right_tableau)
-
-        self.index = []
-
-        z_PLNE = float('inf')
         list_sol = []
+        z_PLNE = float('-inf')
+
+        list_node = update_nodes(temp_node, list_node)
+
 
         while list_node:
             node = list_node.pop(0)
 
             node._Simplexe__iteration = 0
             node.OptStatus = OptStatus.Unknown
-            node.PrintTableau("after bounds addition, before pivoting")
-            #node._Simplexe__solveProblem()
-            #node._Simplexe__solvePhaseI()
-            #node._Simplexe__performPivots()
+            #node.PrintTableau("after bounds addition, before pivoting")
             node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau, 0)
-            node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau, 2)
-            node.PrintTableau("after pivots")
+            node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau, 1)
+            #node.PrintTableau("after pivots")
 
-            last_column = node._Simplexe__tableau[:-1, -1:]
+
             objval = node.ObjValue()
-            if objval < 1e-6:
-                isInteger = True
-            else:
-                isInteger = False
+            print("objVal after pivots", objval)
 
-            #isInteger = True
-            #for x in last_column:
-            #    if abs(x[0]) == np.inf and not (x[0] - round(x[0])) < 1e-6:
-            #        isInteger = False
-
-            if isInteger and not any(t < 0 for t in node._Simplexe__tableau[:-1, -1]):
-                z_PLNE = min(z_PLNE, node.ObjValue())
+            isInteger = is_almost_integer(objval) and not any(t < 0 for t in node._Simplexe__tableau[:-1, -1])
+            if isInteger:
+                z_PLNE = max(z_PLNE, objval)
                 list_sol.append(node._Simplexe__tableau)
                 print("solution found")
-                self.PrintTableau("Branch and Bound Solution")
-                print("OBJECTIVE VALUE : {:.2f}".format(self.ObjValue()))
+                node.PrintTableau("Branch and Bound Solution")
+                print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
                 sys.exit(0)
             else:
-                x_column = list(range(len(node._Simplexe__tableau[0]) - len(node._Simplexe__tableau)))
+                list_node = update_nodes(node, list_node)
 
-                for col in x_column:
-                 for row in range(len(node._Simplexe__tableau) - 1):
-                  if node._Simplexe__tableau[row][col] == 1 and (abs(node._Simplexe__tableau[row][-1]) - abs(floor(node._Simplexe__tableau[row][-1]))) > 1e-6:
-                   node.index.append(row)
-            for line in self.index:
-                left_tableau = self.create_bounds(deepcopy(node), line, True)
-                right_tableau = self.create_bounds(deepcopy(node), line, False)
-                list_node.append(left_tableau)
-                list_node.append(right_tableau)
-                #left_constraint = self.create_bounds(self._Simplexe__tableau, line, True)
-                #right_constraint = self.create_bounds(self._Simplexe__tableau, line, False)
-                #list_node.append((temp, added_constraints + [left_constraint]))
-                #list_node.append((temp, added_constraints + [right_constraint]))
-            self.index = []
+
+
+
+
+
+
+
+
+
+
+
+
 
     def find_pivot(self, tableau, two: bool):
         if two:
