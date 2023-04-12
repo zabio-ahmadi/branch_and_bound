@@ -17,6 +17,7 @@ filename = "examples/lp_glaces.txt"
 
 
 
+
 if "__main__" == __name__:
   bb = BranchAndBound()
   bb.go(filename)

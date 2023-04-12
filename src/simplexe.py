@@ -75,12 +75,6 @@ class Simplexe:
       print("------------------------------------------------")
           
   
-  def __performPivots(self):
-    print("-----entering __performPivots")
-    # we DO have a feasible solution - go on with the simplex
-    while (self.OptStatus == OptStatus.Feasible):
-      self.__pivotTableau(self.__selectPivot(PivotMode.MostNegative))
-      #self.PrintTableau("After pivot")
 
   def PrintTableau(self, header):
     print("------------------------------------------------")
@@ -179,7 +173,8 @@ class Simplexe:
     print("-----entering __isSolutionFeasible")
     # we MUST have that all BASIC variables are >= 0 to have a FEASIBLE solution - for that, check if there is a negative valued basic variable
     for rowId, baseColId in enumerate(self.__basicVariables):
-        if self.__getBasicVariableValue(rowId, baseColId) < -Constants.EPS:
+        val = self.__getBasicVariableValue(rowId, baseColId)
+        if val < -Constants.EPS:
           print("Current solution is not feasible: variable {} has value {}!".format(self.__varName(baseColId), self.__getBasicVariableValue(rowId, baseColId)))
           return False
     # all basic variables are >= 0, 
@@ -283,6 +278,13 @@ class Simplexe:
     # stop measuring time 
     self.__end = time.time()
 
+  def __performPivots(self):
+    print("-----entering __performPivots")
+    # we DO have a feasible solution - go on with the simplex
+    while (self.OptStatus == OptStatus.Feasible):
+      self.__pivotTableau(self.__selectPivot(PivotMode.MostNegative))
+      #self.PrintTableau("After pivot")
+      
   def __pivotTableau(self, pivotIDs):
     print("-----entering __pivotTableau")
     if pivotIDs is None or pivotIDs[0] < 0 or pivotIDs[1] < 0:
