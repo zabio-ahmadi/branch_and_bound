@@ -22,6 +22,8 @@ class BranchAndBound(Simplexe):
         self.PLNE()
         print("------------- finish PLNE")
         self.PrintSolution()
+    
+    
 
 
     def create_bounds1(self, tableau: 'BranchAndBound(Simplexe)', index, isLeft=True):
@@ -89,15 +91,15 @@ class BranchAndBound(Simplexe):
 
         while list_node:
             node = list_node.pop(0)
-            
-            node.PrintTableau("temp")
-
 
             node._Simplexe__iteration = 0
             node.OptStatus = OptStatus.Unknown
-            node._Simplexe__solveProblem()
+            node.PrintTableau("after bounds addition, before pivoting")
+            #node._Simplexe__solveProblem()
             #node._Simplexe__solvePhaseI()
             #node._Simplexe__performPivots()
+            node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau, 0)
+            node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau, 2)
             node.PrintTableau("after pivots")
 
             last_column = node._Simplexe__tableau[:-1, -1:]
@@ -136,6 +138,39 @@ class BranchAndBound(Simplexe):
                 #list_node.append((temp, added_constraints + [left_constraint]))
                 #list_node.append((temp, added_constraints + [right_constraint]))
             self.index = []
+
+    def find_pivot(self, tableau, two: bool):
+        if two:
+            col = np.argmin(tableau[-1, :-1])
+            if tableau[-1, col] >= 0:
+                return None, None
+        else:
+            col = np.argmin(tableau[1, :-1])
+            if tableau[1, col] >= 0:
+                return None, None
+
+        rows_with_positive_coeff = tableau[:-1, col] > 0
+        if not np.any(rows_with_positive_coeff):
+            return None, None
+
+        ratio = tableau[:-1, -1][rows_with_positive_coeff] / tableau[:-1, col][rows_with_positive_coeff]
+        row = np.argmin(ratio)
+        return np.arange(tableau.shape[0] - 1)[rows_with_positive_coeff][row], col
+
+    def pivot(self, tableau, row, col):
+        tableau[row, :] /= tableau[row, col]
+        for i in range(tableau.shape[0]):
+            if i != row:
+                tableau[i, :] -= tableau[i, col] * tableau[row, :]
+
+    def solve_tableau(self, tableau, two):
+        while True:
+            row, col = self.find_pivot(tableau, two)
+            if row is None:
+                break
+            self.pivot(tableau, row, col)
+
+        return tableau
 
 
 
