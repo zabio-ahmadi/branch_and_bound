@@ -8,7 +8,7 @@ from src.simplexe import *
 from src.constants import *
 
 from math import floor, ceil
-
+from typing import *
 
 class BranchAndBound(Simplexe):
     def __init__(self):
@@ -16,7 +16,7 @@ class BranchAndBound(Simplexe):
         self.index = []
 
     def go(self, lpFileName, printDetails=False):
-        self.__PrintDetails = printDetails
+        self._Simplexe__PrintDetails = printDetails
         self.LoadFromFile(lpFileName, printDetails)
         self.PrintTableau("before PLNE")
         self.PLNE()
@@ -24,7 +24,7 @@ class BranchAndBound(Simplexe):
         self.PrintSolution()
     
     
-    def create_bounds(self, tableau: 'BranchAndBound', index, isLeft=True):
+    def create_bounds(self, tableau: Type['BranchAndBound'], index, isLeft=True):
 
         if isLeft == True:
             abs = floor(tableau._Simplexe__tableau[index][-1])
