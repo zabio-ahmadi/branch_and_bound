@@ -163,7 +163,7 @@ class BranchAndBound(Simplexe):
             if i != row:
                 tableau[i, :] -= tableau[i, col] * tableau[row, :]
 
-    def solve_tableau(self, tableau, two):
+    def solve_tableau(self, tableau, two: bool): # two is for alternating between choosing row 1 and last row for pivot selection
         while True:
             row, col = self.find_pivot(tableau, two)
             if row is None:
