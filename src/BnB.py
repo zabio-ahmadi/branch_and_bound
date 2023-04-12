@@ -24,18 +24,7 @@ class BranchAndBound(Simplexe):
         self.PrintSolution()
     
     
-
-
-    def create_bounds1(self, tableau: 'BranchAndBound(Simplexe)', index, isLeft=True):
-        if isLeft:
-            abs_val = floor(tableau[index][-1])
-            new_line = [1] + [0] * (len(tableau[0]) - 2) + [1] + [abs_val]
-        else:
-            abs_val = -1 * ceil(tableau[index][-1])
-            new_line = [-1] + [0] * (len(tableau[0]) - 2) + [1] + [abs_val]
-        return new_line
-    
-    def create_bounds(self, tableau: 'BranchAndBound(Simplexe)', index, isLeft=True):
+    def create_bounds(self, tableau: 'BranchAndBound', index, isLeft=True):
 
         if isLeft == True:
             abs = floor(tableau._Simplexe__tableau[index][-1])
