@@ -17,7 +17,7 @@ class BranchAndBound(Simplexe):
 
     def go(self, lpFileName, printDetails=False):
         self._Simplexe__PrintDetails = printDetails
-        self.LoadFromFile(lpFileName, printDetails)
+        self.LoadFromFile(lpFileName, printDetails) # loads file and solves it with the simplex method
         self.PrintTableau("before PLNE")
         self.PLNE()
         print("------------- finish PLNE")
@@ -48,9 +48,6 @@ class BranchAndBound(Simplexe):
         tableau.NumRows += 1
         tableau._Simplexe__basicVariables = np.arange(tableau.NumCols, tableau.NumCols + tableau.NumRows, 1, dtype=int)
         return tableau
-
-
-
 
 
     def PLNE(self):
@@ -88,10 +85,11 @@ class BranchAndBound(Simplexe):
 
             node._Simplexe__iteration = 0
             node.OptStatus = OptStatus.Unknown
-            #node.PrintTableau("after bounds addition, before pivoting")
-            node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau, 0)
-            node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau, 1)
-            #node.PrintTableau("after pivots")
+            node.PrintTableau("after bounds addition, before pivoting")
+            #node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau)
+            #node.PrintTableau("after 0 pivots")
+            node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau)
+            node.PrintTableau("after 1 pivots")
 
 
             objval = node.ObjValue()
@@ -110,26 +108,49 @@ class BranchAndBound(Simplexe):
 
 
 
+    def pivot(self, tableau, row, col):
+        tableau[row, :] /= tableau[row, col]
+        for i in range(tableau.shape[0]):
+            if i != row:
+                tableau[i, :] -= tableau[i, col] * tableau[row, :]
+
+    def solve_tableau(self, tableau):
+        while True:
+            row, col = self.find_pivot(tableau)
+            print(row, col)
+            if row is None:
+                break
+            self.pivot(tableau, row, col)
+        return tableau
 
 
-
-
-
-
-
-
-
-
-
-    def find_pivot(self, tableau, two: bool):
+    def find_pivot1(self, tableau, two):
         if two:
-            col = np.argmin(tableau[-1, :-1])
-            if tableau[-1, col] >= 0:
+            entering_candidates = np.argwhere(tableau[-1, :-1] < 0)
+            if entering_candidates.size == 0:
                 return None, None
+            col = entering_candidates[0][0]  # Bland's Rule for choosing entering variable
         else:
-            col = np.argmin(tableau[1, :-1])
-            if tableau[1, col] >= 0:
+            entering_candidates = np.argwhere(tableau[1, :-1] < 0)
+            if entering_candidates.size == 0:
                 return None, None
+            col = entering_candidates[0][0]  # Bland's Rule for choosing entering variable
+
+        rows_with_positive_coeff = tableau[:-1, col] > 0
+        if not np.any(rows_with_positive_coeff):
+            return None, None
+
+        ratio = tableau[:-1, -1][rows_with_positive_coeff] / tableau[:-1, col][rows_with_positive_coeff]
+        min_ratio_indices = np.argwhere(ratio == np.min(ratio)).flatten()
+        row = min_ratio_indices[0]  # Bland's Rule for choosing leaving variable
+
+        return np.arange(tableau.shape[0] - 1)[rows_with_positive_coeff][row], col
+
+    def find_pivot(self, tableau):
+        row_with_min = np.argmin(tableau[:-1, 2])
+        col = np.argmin(tableau[row_with_min, :-1])
+        if tableau[row_with_min, col] >= 0:
+            return None, None
 
         rows_with_positive_coeff = tableau[:-1, col] > 0
         if not np.any(rows_with_positive_coeff):
@@ -138,22 +159,6 @@ class BranchAndBound(Simplexe):
         ratio = tableau[:-1, -1][rows_with_positive_coeff] / tableau[:-1, col][rows_with_positive_coeff]
         row = np.argmin(ratio)
         return np.arange(tableau.shape[0] - 1)[rows_with_positive_coeff][row], col
-
-    def pivot(self, tableau, row, col):
-        tableau[row, :] /= tableau[row, col]
-        for i in range(tableau.shape[0]):
-            if i != row:
-                tableau[i, :] -= tableau[i, col] * tableau[row, :]
-
-    def solve_tableau(self, tableau, two: bool): # two is for alternating between choosing row 1 and last row for pivot selection
-        while True:
-            row, col = self.find_pivot(tableau, two)
-            if row is None:
-                break
-            self.pivot(tableau, row, col)
-
-        return tableau
-
 
 
 if "__main__" == __name__:
