@@ -21,7 +21,7 @@ class BranchAndBound(Simplexe):
         self.PrintTableau("before PLNE")
         self.PLNE()
         print("------------- finish PLNE")
-        self.PrintSolution()
+        #self.PrintSolution()
     
     
     def create_bounds(self, tableau: Type['BranchAndBound'], index, isLeft=True):
@@ -51,8 +51,11 @@ class BranchAndBound(Simplexe):
 
 
     def PLNE(self):
-        def is_almost_integer(num, threshold=0.0001):
-            return abs(num - round(num)) <= threshold
+        def is_almost_integer(num, threshold=0.01):
+            frac_part = abs(num - round(num))
+            return frac_part <= threshold or (1 - frac_part) <= threshold
+
+
         def update_nodes(node, list_node):
             x_column = list(range(len(node._Simplexe__tableau[0]) - len(node._Simplexe__tableau)))
 
@@ -71,41 +74,68 @@ class BranchAndBound(Simplexe):
             return list_node
 
         numRows, numCols = self._Simplexe__tableau.shape
+
+        objval_max = self.ObjValue()
+
         temp_node = deepcopy(self)
 
         list_node = []
         list_sol = []
         z_PLNE = float('-inf')
 
+
+        iteration = 0
+        max_iterations = 1000
+
         list_node = update_nodes(temp_node, list_node)
 
 
-        while list_node:
+        while list_node and iteration < max_iterations:
+            iteration += 1
             node = list_node.pop(0)
 
-            node._Simplexe__iteration = 0
-            node.OptStatus = OptStatus.Unknown
-            node.PrintTableau("after bounds addition, before pivoting")
-            #node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau)
-            #node.PrintTableau("after 0 pivots")
             node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau)
-            node.PrintTableau("after 1 pivots")
-
 
             objval = node.ObjValue()
             print("objVal after pivots", objval)
 
-            isInteger = is_almost_integer(objval) and not any(t < 0 for t in node._Simplexe__tableau[:-1, -1])
+            if objval < z_PLNE or objval > objval_max: # no need to check anything if current objective value is worse than best
+                continue
+
+            isInteger = is_almost_integer(objval) and not any(t < -1e-6 for t in node._Simplexe__tableau[:-1, -1])
+            isInteger = is_almost_integer(objval)
             if isInteger:
-                z_PLNE = max(z_PLNE, objval)
-                list_sol.append(node._Simplexe__tableau)
-                print("solution found")
-                node.PrintTableau("Branch and Bound Solution")
-                print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
-                sys.exit(0)
-            else:
+                if objval > z_PLNE:
+                    z_PLNE = objval
+                    best_tableau = node
+                    print("Better solution found")
+                    node.PrintTableau("Branch and Bound Solution")
+                    print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
+                #sys.exit(0)
+            elif all(t >= 0 for t in node._Simplexe__tableau[:-1, -1]):  # Update nodes only when the current node has a feasible solution
                 list_node = update_nodes(node, list_node)
 
+        # Print the best solution found after searching all nodes
+        print("Best solution found")
+        best_tableau.PrintTableau("Best Branch and Bound Solution")
+        print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
+
+
+
+    def round_numpy_array(self, arr, decimals=6):
+        # convert the array to a floating-point type
+        arr = arr.astype(float)
+
+        # round the array to a maximum of 6 decimal places
+        arr = np.round(arr, decimals=decimals)
+
+        # convert any non-float values back to strings
+        for i in range(arr.shape[0]):
+            for j in range(arr.shape[1]):
+                if not isinstance(arr[i, j], float):
+                    arr[i, j] = str(arr[i, j])
+
+        return arr
 
 
     def pivot(self, tableau, row, col):
@@ -117,10 +147,10 @@ class BranchAndBound(Simplexe):
     def solve_tableau(self, tableau):
         while True:
             row, col = self.find_pivot(tableau)
-            print(row, col)
             if row is None:
                 break
             self.pivot(tableau, row, col)
+        tableau = self.round_numpy_array(tableau)
         return tableau
 
     def find_pivot(self, tableau):
@@ -135,6 +165,21 @@ class BranchAndBound(Simplexe):
 
         ratio = tableau[:-1, -1][rows_with_positive_coeff] / tableau[:-1, col][rows_with_positive_coeff]
         row = np.argmin(ratio)
+        return np.arange(tableau.shape[0] - 1)[rows_with_positive_coeff][row], col
+
+    def find_pivot1(self, tableau):
+        col = np.argmin(tableau[-1, :-1])  # Find the most negative value in the last row
+        if tableau[-1, col] >= 0:  # If there are no negative values, the solution is optimal
+            return None, None
+
+        # Find the rows with a positive coefficient for the selected column
+        rows_with_positive_coeff = tableau[:-1, col] > 0
+        if not np.any(rows_with_positive_coeff):
+            return None, None
+
+        # Calculate the ratio of the last column values to the selected column values for the positive rows
+        ratio = tableau[:-1, -1][rows_with_positive_coeff] / tableau[:-1, col][rows_with_positive_coeff]
+        row = np.argmin(ratio)  # Choose the row with the smallest ratio
         return np.arange(tableau.shape[0] - 1)[rows_with_positive_coeff][row], col
 
 
