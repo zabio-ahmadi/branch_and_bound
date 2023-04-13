@@ -123,29 +123,6 @@ class BranchAndBound(Simplexe):
             self.pivot(tableau, row, col)
         return tableau
 
-
-    def find_pivot1(self, tableau, two):
-        if two:
-            entering_candidates = np.argwhere(tableau[-1, :-1] < 0)
-            if entering_candidates.size == 0:
-                return None, None
-            col = entering_candidates[0][0]  # Bland's Rule for choosing entering variable
-        else:
-            entering_candidates = np.argwhere(tableau[1, :-1] < 0)
-            if entering_candidates.size == 0:
-                return None, None
-            col = entering_candidates[0][0]  # Bland's Rule for choosing entering variable
-
-        rows_with_positive_coeff = tableau[:-1, col] > 0
-        if not np.any(rows_with_positive_coeff):
-            return None, None
-
-        ratio = tableau[:-1, -1][rows_with_positive_coeff] / tableau[:-1, col][rows_with_positive_coeff]
-        min_ratio_indices = np.argwhere(ratio == np.min(ratio)).flatten()
-        row = min_ratio_indices[0]  # Bland's Rule for choosing leaving variable
-
-        return np.arange(tableau.shape[0] - 1)[rows_with_positive_coeff][row], col
-
     def find_pivot(self, tableau):
         row_with_min = np.argmin(tableau[:-1, 2])
         col = np.argmin(tableau[row_with_min, :-1])
