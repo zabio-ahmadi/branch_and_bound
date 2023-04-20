@@ -18,6 +18,7 @@ class BranchAndBound(Simplexe):
     def go(self, lpFileName, printDetails=False):
         self._Simplexe__PrintDetails = printDetails
         self.LoadFromFile(lpFileName, printDetails) # loads file and solves it with the simplex method
+        self = self.round_numpy_array(self)
         self.PrintTableau("before PLNE")
         self.PLNE()
         print("------------- finish PLNE")
@@ -46,7 +47,8 @@ class BranchAndBound(Simplexe):
                 tableau._Simplexe__tableau[-2][i] = tableau._Simplexe__tableau[-2][i] + tableau._Simplexe__tableau[index][i]
         tableau.NumCols += 1
         tableau.NumRows += 1
-        tableau._Simplexe__basicVariables = np.arange(tableau.NumCols, tableau.NumCols + tableau.NumRows, 1, dtype=int)
+        tableau._Simplexe__basicVariables = np.append(tableau._Simplexe__basicVariables, np.max(tableau._Simplexe__basicVariables)+1)
+        tableau._Simplexe__basicVariables = np.where(tableau._Simplexe__basicVariables >= tableau.NumCols, tableau._Simplexe__basicVariables + 1, tableau._Simplexe__basicVariables)
         return tableau
 
 
@@ -94,7 +96,10 @@ class BranchAndBound(Simplexe):
             iteration += 1
             node = list_node.pop(0)
 
-            node._Simplexe__tableau = self.solve_tableau(node._Simplexe__tableau)
+            node = self.round_numpy_array(node)
+            node.PrintTableau("before solve")
+            node = self.solve_tableau(node)
+            node.PrintTableau("after solve")
 
             objval = node.ObjValue()
             print("objVal after pivots", objval)
@@ -122,29 +127,29 @@ class BranchAndBound(Simplexe):
 
 
 
-    def round_numpy_array(self, arr, decimals=6):
+    def round_numpy_array(self, arr: 'BranchAndBound', decimals=6):
         # convert the array to a floating-point type
-        arr = arr.astype(float)
+        arr._Simplexe__tableau = arr._Simplexe__tableau.astype(float)
 
         # round the array to a maximum of 6 decimal places
-        arr = np.round(arr, decimals=decimals)
+        arr._Simplexe__tableau = np.round(arr._Simplexe__tableau, decimals=decimals)
 
         # convert any non-float values back to strings
-        for i in range(arr.shape[0]):
-            for j in range(arr.shape[1]):
-                if not isinstance(arr[i, j], float):
-                    arr[i, j] = str(arr[i, j])
+        for i in range(arr._Simplexe__tableau.shape[0]):
+            for j in range(arr._Simplexe__tableau.shape[1]):
+                if not isinstance(arr._Simplexe__tableau[i, j], float):
+                    arr[i, j] = str(arr._Simplexe__tableau[i, j])
 
         return arr
 
 
-    def pivot(self, tableau, row, col):
-        tableau[row, :] /= tableau[row, col]
-        for i in range(tableau.shape[0]):
+    def pivot(self, tableau: 'BranchAndBound', row, col):
+        tableau._Simplexe__tableau[row, :] /= tableau._Simplexe__tableau[row, col]
+        for i in range(tableau._Simplexe__tableau.shape[0]):
             if i != row:
-                tableau[i, :] -= tableau[i, col] * tableau[row, :]
+                tableau._Simplexe__tableau[i, :] -= tableau._Simplexe__tableau[i, col] * tableau._Simplexe__tableau[row, :]
 
-    def solve_tableau(self, tableau):
+    def solve_tableau(self, tableau: 'BranchAndBound'):
         while True:
             row, col = self.find_pivot(tableau)
             if row is None:
@@ -153,19 +158,22 @@ class BranchAndBound(Simplexe):
         tableau = self.round_numpy_array(tableau)
         return tableau
 
-    def find_pivot(self, tableau):
-        row_with_min = np.argmin(tableau[:-1, 2])
-        col = np.argmin(tableau[row_with_min, :-1])
-        if tableau[row_with_min, col] >= 0:
+    def find_pivot(self, tableau: 'BranchAndBound'):
+        tableau.PrintTableau("find pivot")
+        mask = tableau._Simplexe__basicVariables >= tableau.NumCols
+        t = tableau._Simplexe__tableau[:-1]
+        row_with_min = np.argmin(t[mask, tableau.NumCols-1])
+        col = np.argmin(tableau._Simplexe__tableau[row_with_min, :-1])
+        if tableau._Simplexe__tableau[row_with_min, col] >= 0:
             return None, None
 
-        rows_with_positive_coeff = tableau[:-1, col] > 0
+        rows_with_positive_coeff = tableau._Simplexe__tableau[:-1, col] > 0
         if not np.any(rows_with_positive_coeff):
             return None, None
 
-        ratio = tableau[:-1, -1][rows_with_positive_coeff] / tableau[:-1, col][rows_with_positive_coeff]
+        ratio = tableau._Simplexe__tableau[:-1, -1][rows_with_positive_coeff] / tableau._Simplexe__tableau[:-1, col][rows_with_positive_coeff]
         row = np.argmin(ratio)
-        return np.arange(tableau.shape[0] - 1)[rows_with_positive_coeff][row], col
+        return np.arange(tableau._Simplexe__tableau.shape[0] - 1)[rows_with_positive_coeff][row], col
 
     def find_pivot1(self, tableau):
         col = np.argmin(tableau[-1, :-1])  # Find the most negative value in the last row
