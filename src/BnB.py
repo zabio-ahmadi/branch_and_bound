@@ -14,11 +14,12 @@ class BranchAndBound(Simplexe):
     def __init__(self):
         super().__init__()
         self.index = []
+        self.depth = 0
 
     def go(self, lpFileName, printDetails=False):
         self._Simplexe__PrintDetails = printDetails
         self.LoadFromFile(lpFileName, printDetails) # loads file and solves it with the simplex method
-        self = self.round_numpy_array(self)
+        #self = self.round_numpy_array(self)
         self.PrintTableau("before PLNE")
         self.PLNE()
         print("------------- finish PLNE")
@@ -26,30 +27,29 @@ class BranchAndBound(Simplexe):
     
     
     def create_bounds(self, tableau: Type['BranchAndBound'], index, isLeft=True):
+        whichVariable = tableau.depth
+        rhs_val = tableau._Simplexe__tableau[index][-1]
+        abs_val = floor(rhs_val) if isLeft else -1 * ceil(rhs_val)
+        new_line = [0] * (len(tableau._Simplexe__tableau[0]) - 1) + [1] + [abs_val]
+        new_line[whichVariable] = 1 if isLeft else -1
 
-        if isLeft == True:
-            abs = floor(tableau._Simplexe__tableau[index][-1])
-            new_line = [1] + [0] * (len(tableau._Simplexe__tableau[0]) - 2) + [1] + [abs]
-
-        if isLeft == False:
-            abs = -1 * ceil(tableau._Simplexe__tableau[index][-1])
-            new_line = [-1] + [0] * (len(tableau._Simplexe__tableau[0]) - 2) + [1] + [abs]
-
-        #tableau = np.delete(tableau, index, axis=0)
         tableau._Simplexe__tableau = np.hstack((tableau._Simplexe__tableau[:, :-1], np.atleast_2d([0] * len(tableau._Simplexe__tableau)).T, tableau._Simplexe__tableau[:, -1:]))
 
         tableau._Simplexe__tableau = np.vstack((tableau._Simplexe__tableau[:-1], new_line, tableau._Simplexe__tableau[-1:]))
 
-        for i in range(len(tableau._Simplexe__tableau[index])):
-            if isLeft == True:
-                tableau._Simplexe__tableau[-2][i] = tableau._Simplexe__tableau[-2][i] - tableau._Simplexe__tableau[index][i]
-            if isLeft == False:
-                tableau._Simplexe__tableau[-2][i] = tableau._Simplexe__tableau[-2][i] + tableau._Simplexe__tableau[index][i]
+        if isLeft:
+            tableau._Simplexe__tableau[-2] -= tableau._Simplexe__tableau[index]
+        else:
+            tableau._Simplexe__tableau[-2] += tableau._Simplexe__tableau[index]
         tableau.NumCols += 1
         tableau.NumRows += 1
         tableau._Simplexe__basicVariables = np.append(tableau._Simplexe__basicVariables, np.max(tableau._Simplexe__basicVariables)+1)
         tableau._Simplexe__basicVariables = np.where(tableau._Simplexe__basicVariables >= tableau.NumCols, tableau._Simplexe__basicVariables + 1, tableau._Simplexe__basicVariables)
-        input_string = self.generate_input_string(tableau, new_line)
+        
+        tableau.LP.AMatrix = np.vstack((tableau.LP.AMatrix, np.array([whichVariable==0,whichVariable==1])))
+        tableau.LP.RHS = np.append(tableau.LP.RHS, abs_val)
+
+        #input_string = self.generate_input_string(tableau, new_line)
         return tableau
 
 
@@ -59,7 +59,7 @@ class BranchAndBound(Simplexe):
             return frac_part <= threshold or (1 - frac_part) <= threshold
 
 
-        def update_nodes(node, list_node):
+        def update_nodes(node, list_node, depth=0):
             x_column = list(range(len(node._Simplexe__tableau[0]) - len(node._Simplexe__tableau)))
 
             for col in x_column:
@@ -69,7 +69,9 @@ class BranchAndBound(Simplexe):
 
             for line in node.index:
                 left_tableau = self.create_bounds(deepcopy(node), line, True)
+                left_tableau.depth += 1
                 right_tableau = self.create_bounds(deepcopy(node), line, False)
+                right_tableau.depth += 1
                 list_node.append(left_tableau)
                 list_node.append(right_tableau)
 
@@ -91,15 +93,22 @@ class BranchAndBound(Simplexe):
         max_iterations = 1000
 
         list_node = update_nodes(temp_node, list_node)
+        best_tableau = None
 
 
         while list_node and iteration < max_iterations:
             iteration += 1
             node = list_node.pop(0)
+            print("depth",node.depth)
 
-            node = self.round_numpy_array(node)
+            #node = self.round_numpy_array(node)
+            #node = self.reorder(node)
             node.PrintTableau("before solve")
-            node = self.solve_tableau(node)
+            node.OptStatus == OptStatus.Unknown
+            #node.initPhaseI(deepcopy(node))
+            #node._Simplexe__solvePhaseI()
+            node._Simplexe__solveProblem(OptStatus.Unknown)
+            #node = self.solve_tableau(node)
             node.PrintTableau("after solve")
 
             objval = node.ObjValue()
@@ -122,9 +131,20 @@ class BranchAndBound(Simplexe):
                 list_node = update_nodes(node, list_node)
 
         # Print the best solution found after searching all nodes
-        print("Best solution found")
-        best_tableau.PrintTableau("Best Branch and Bound Solution")
-        print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
+        if best_tableau:
+            print("Best solution found")
+            best_tableau.PrintTableau("Best Branch and Bound Solution")
+            print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
+    
+    def reorder(self, tableau):
+        basics = tableau._Simplexe__basicVariables
+        basics = np.where(basics >= tableau.NumCols, basics - tableau.NumCols, basics)
+        basics = np.append(basics, np.max(basics)+1)
+        tableau._Simplexe__tableau = np.take(tableau._Simplexe__tableau, basics, axis=0)
+
+        # reorder the index array so that it goes from 0 to max
+        tableau._Simplexe__basicVariables = np.sort(tableau._Simplexe__basicVariables)
+        return tableau
 
     def generate_input_string(self, tableau, new_line):
         numRows, numCols = tableau._Simplexe__tableau.shape
@@ -179,7 +199,7 @@ class BranchAndBound(Simplexe):
         return tableau
 
     def find_pivot(self, tableau: 'BranchAndBound'):
-        tableau.PrintTableau("find pivot")
+        #tableau.PrintTableau("find pivot")
         mask = tableau._Simplexe__basicVariables >= tableau.NumCols
         t = tableau._Simplexe__tableau[:-1]
         row_with_min = np.argmin(t[mask, tableau.NumCols-1])
@@ -194,21 +214,6 @@ class BranchAndBound(Simplexe):
         ratio = tableau._Simplexe__tableau[:-1, -1][rows_with_positive_coeff] / tableau._Simplexe__tableau[:-1, col][rows_with_positive_coeff]
         row = np.argmin(ratio)
         return np.arange(tableau._Simplexe__tableau.shape[0] - 1)[rows_with_positive_coeff][row], col
-
-    def find_pivot1(self, tableau):
-        col = np.argmin(tableau[-1, :-1])  # Find the most negative value in the last row
-        if tableau[-1, col] >= 0:  # If there are no negative values, the solution is optimal
-            return None, None
-
-        # Find the rows with a positive coefficient for the selected column
-        rows_with_positive_coeff = tableau[:-1, col] > 0
-        if not np.any(rows_with_positive_coeff):
-            return None, None
-
-        # Calculate the ratio of the last column values to the selected column values for the positive rows
-        ratio = tableau[:-1, -1][rows_with_positive_coeff] / tableau[:-1, col][rows_with_positive_coeff]
-        row = np.argmin(ratio)  # Choose the row with the smallest ratio
-        return np.arange(tableau.shape[0] - 1)[rows_with_positive_coeff][row], col
 
 
 if "__main__" == __name__:

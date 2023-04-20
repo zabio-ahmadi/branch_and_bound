@@ -36,7 +36,9 @@ class Simplexe:
     self.LP.PrintProblem()
     self.__solveProblem()
   
-  def __solveProblem(self):
+  def __solveProblem(self, optstatus=-1):
+    if optstatus != -1:
+      self.OptStatus = OptStatus.Unknown
     print("-----entering __solveProblem", self.OptStatus)
     self.__start = time.time()
     if self.OptStatus == OptStatus.Unknown: self.__initTableau()
@@ -73,8 +75,8 @@ class Simplexe:
       print("------------------------------------------------")
       print("LP is UNBOUNDED!")
       print("------------------------------------------------")
-          
-  
+
+
 
   def PrintTableau(self, header):
     print("------------------------------------------------")
@@ -167,7 +169,7 @@ class Simplexe:
         self.__tableau[rowId, :] = self.__tableau[rowId, :] * -1.
     if self.__PrintDetails:
       self.PrintTableau("Initial tableau")
-    
+
 
   def __isSolutionFeasible(self):
     print("-----entering __isSolutionFeasible")
@@ -239,8 +241,8 @@ class Simplexe:
     # in BOTH rows, only first coefficients are non-zero - copy the original values (initial slack variables have 0 cost already => copy OK)
     # and for the NEW AUXILIARY objective row, the cost is -1 * the sum of column coefficients (here, objective is not yet added to the matrix => simply
     # take the sum is ok - also, for original slack variables, the sum is always -1 as we have an identity matrix)
-    objRowOriginal = np.zeros(self.NumRows + self.NumCols, dtype=float)
-    objRowNew = np.zeros(self.NumRows + self.NumCols, dtype=float)
+    objRowOriginal = np.zeros(self.NumRows + self.NumCols , dtype=float)
+    objRowNew = np.zeros(self.NumRows + self.NumCols , dtype=float)
     for iCol in range(self.NumCols):
         objRowOriginal[iCol] = tmpCopy[-1,iCol]
         objRowNew[iCol] = -np.sum(self.__tableau[:,iCol])
