@@ -35,7 +35,21 @@ class Simplexe:
     self.NumCols = self.LP.Costs.shape[0]
     self.LP.PrintProblem()
     self.__solveProblem()
-  
+
+  def LoadFromString(self, inputString, printDetails):
+    print("-----entering LoadFromString")
+    self.__PrintDetails = printDetails
+    self.LP = LP(inputString, True)
+    if not self.LP.ParseString():
+        return
+    # --- 
+    self.OptStatus = OptStatus.Unknown
+    self.NumRows = self.LP.RHS.shape[0]
+    self.NumCols = self.LP.Costs.shape[0]
+    self.LP.PrintProblem()
+    self.__solveProblem()
+
+
   def __solveProblem(self, optstatus=-1):
     if optstatus != -1:
       self.OptStatus = OptStatus.Unknown
