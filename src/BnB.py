@@ -16,7 +16,7 @@ class BranchAndBound(Simplexe):
         self.index = []
         self.depth = 0
 
-    def go(self, lpFileName, printDetails=False):
+    def go(self, lpFileName: str, printDetails: bool = False) -> None:
         self._Simplexe__PrintDetails = printDetails
         self.LoadFromFile(lpFileName, printDetails) # loads file and solves it with the simplex method
         #self = self.round_numpy_array(self)
@@ -25,27 +25,26 @@ class BranchAndBound(Simplexe):
         print("------------- finish PLNE")
         #self.PrintSolution()
 
-    def create_bounds(self, tableau: 'BranchAndBound', isLeft=True):
-        whichRow = tableau.index[tableau.depth]
+    def create_bounds(self, tableau: 'BranchAndBound', isLeft: bool = True) -> 'BranchAndBound':
+        whichRow = tableau.index[tableau.depth % len(tableau.index)]
         whichVariable = tableau.depth
         rhs_val = tableau._Simplexe__tableau[whichRow][-1]
-        abs_val = floor(rhs_val) if isLeft else -1 * ceil(rhs_val)
         sign = 1 if isLeft else -1
+        abs_val = floor(rhs_val) if isLeft else ceil(rhs_val)
         tableau.NumRows += 1
         AMatrix_row = np.zeros(tableau.LP.AMatrix.shape[1])
         AMatrix_row[whichVariable] = sign
         tableau.LP.AMatrix = np.vstack((tableau.LP.AMatrix, AMatrix_row))
-        tableau.LP.RHS = np.append(tableau.LP.RHS, abs_val)
+        tableau.LP.RHS = np.append(tableau.LP.RHS, abs_val * sign)
 
         return tableau
 
     def PLNE(self):
-        def is_almost_integer(num, threshold=0.01):
-            frac_part = abs(num - round(num))
-            return frac_part <= threshold or (1 - frac_part) <= threshold
+        def is_almost_integer(num: float, threshold: float = 0.01) -> bool:
+            return abs(num - round(num)) < threshold
 
 
-        def update_nodes(node, list_node, depth=0):
+        def update_nodes(node: 'BranchAndBound', list_node: List) -> List:
             node.index = [i for i in range(len(node._Simplexe__basicVariables)) if node._Simplexe__basicVariables[i] < node.NumCols]
 
             left_tableau = self.create_bounds(deepcopy(node), True)
@@ -58,7 +57,7 @@ class BranchAndBound(Simplexe):
             node.index = []
             return list_node
 
-        numRows, numCols = self._Simplexe__tableau.shape
+        #numRows, numCols = self._Simplexe__tableau.shape
 
         objval_max = self.ObjValue()
 
@@ -103,6 +102,7 @@ class BranchAndBound(Simplexe):
                 if objval > z_PLNE:
                     z_PLNE = objval
                     best_tableau = node
+                    list_sol.append(node)
                     print("Better solution found")
                     node.PrintTableau("Branch and Bound Solution")
                     print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
@@ -147,7 +147,7 @@ class BranchAndBound(Simplexe):
 
         return input_string
 
-    def round_numpy_array(self, arr: 'BranchAndBound', decimals=6):
+    def round_numpy_array(self, arr: 'BranchAndBound', decimals: int = 6) -> 'BranchAndBound':
         # convert the array to a floating-point type
         arr._Simplexe__tableau = arr._Simplexe__tableau.astype(float)
 
@@ -163,13 +163,13 @@ class BranchAndBound(Simplexe):
         return arr
 
 
-    def pivot(self, tableau: 'BranchAndBound', row, col):
+    def pivot(self, tableau: 'BranchAndBound', row: int, col: int) -> 'BranchAndBound':
         tableau._Simplexe__tableau[row, :] /= tableau._Simplexe__tableau[row, col]
         for i in range(tableau._Simplexe__tableau.shape[0]):
             if i != row:
                 tableau._Simplexe__tableau[i, :] -= tableau._Simplexe__tableau[i, col] * tableau._Simplexe__tableau[row, :]
 
-    def solve_tableau(self, tableau: 'BranchAndBound'):
+    def solve_tableau(self, tableau: 'BranchAndBound') -> 'BranchAndBound':
         while True:
             row, col = self.find_pivot(tableau)
             if row is None:
@@ -178,7 +178,7 @@ class BranchAndBound(Simplexe):
         #tableau = self.round_numpy_array(tableau)
         return tableau
 
-    def find_pivot(self, tableau: 'BranchAndBound'):
+    def find_pivot(self, tableau: 'BranchAndBound') -> tuple[int, int]:
         #tableau.PrintTableau("find pivot")
         mask = tableau._Simplexe__basicVariables >= tableau.NumCols
         t = tableau._Simplexe__tableau[:-1]
