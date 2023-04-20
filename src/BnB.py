@@ -24,62 +24,19 @@ class BranchAndBound(Simplexe):
         self.PLNE()
         print("------------- finish PLNE")
         #self.PrintSolution()
-    
-    
-    def create_bounds2(self, tableau: 'BranchAndBound', index, isLeft=True):
-        whichVariable = tableau.depth
-        rhs_val = tableau._Simplexe__tableau[index][-1]
-        abs_val = floor(rhs_val) if isLeft else -1 * ceil(rhs_val)
-        new_line = [0] * (len(tableau._Simplexe__tableau[0]) - 1) + [1] + [abs_val]
-        sign = 1 if isLeft else -1
-        new_line[whichVariable] = sign
-
-        tableau._Simplexe__tableau = np.hstack((tableau._Simplexe__tableau[:, :-1], np.atleast_2d([0] * len(tableau._Simplexe__tableau)).T, tableau._Simplexe__tableau[:, -1:]))
-
-        tableau._Simplexe__tableau = np.vstack((tableau._Simplexe__tableau[:-1], new_line, tableau._Simplexe__tableau[-1:]))
-
-        if isLeft:
-            tableau._Simplexe__tableau[-2] -= tableau._Simplexe__tableau[index]
-        else:
-            tableau._Simplexe__tableau[-2] += tableau._Simplexe__tableau[index]
-        tableau.NumCols += 1
-        tableau.NumRows += 1
-        tableau._Simplexe__basicVariables = np.append(tableau._Simplexe__basicVariables, np.max(tableau._Simplexe__basicVariables)+1)
-        tableau._Simplexe__basicVariables = np.where(tableau._Simplexe__basicVariables >= tableau.NumCols, tableau._Simplexe__basicVariables + 1, tableau._Simplexe__basicVariables)
-        
-        tableau.LP.AMatrix = np.vstack((tableau.LP.AMatrix, np.array([sign * (whichVariable==0), sign * (whichVariable==1)])))
-        tableau.LP.RHS = np.append(tableau.LP.RHS, abs_val)
-
-        #input_string = self.generate_input_string(tableau, new_line)
-        return tableau
 
     def create_bounds(self, tableau: 'BranchAndBound', isLeft=True):
         whichRow = tableau.index[tableau.depth]
-
         whichVariable = tableau.depth
         rhs_val = tableau._Simplexe__tableau[whichRow][-1]
         abs_val = floor(rhs_val) if isLeft else -1 * ceil(rhs_val)
-        new_line = [0] * (len(tableau._Simplexe__tableau[0]) - 1) + [1] + [abs_val]
         sign = 1 if isLeft else -1
-        new_line[whichVariable] = sign
-
-        tableau._Simplexe__tableau = np.hstack((tableau._Simplexe__tableau[:, :-1], np.atleast_2d([0] * len(tableau._Simplexe__tableau)).T, tableau._Simplexe__tableau[:, -1:]))
-
-        tableau._Simplexe__tableau = np.vstack((tableau._Simplexe__tableau[:-1], new_line, tableau._Simplexe__tableau[-1:]))
-
-        if isLeft:
-            tableau._Simplexe__tableau[-2] -= tableau._Simplexe__tableau[whichRow]
-        else:
-            tableau._Simplexe__tableau[-2] += tableau._Simplexe__tableau[whichRow]
-        #tableau.NumCols += 1
         tableau.NumRows += 1
-        tableau._Simplexe__basicVariables = np.append(tableau._Simplexe__basicVariables, np.max(tableau._Simplexe__basicVariables)+1)
-        tableau._Simplexe__basicVariables = np.where(tableau._Simplexe__basicVariables >= tableau.NumCols + 1, tableau._Simplexe__basicVariables + 1, tableau._Simplexe__basicVariables)
-        
-        tableau.LP.AMatrix = np.vstack((tableau.LP.AMatrix, np.array([sign * (whichVariable==0), sign * (whichVariable==1)])))
+        AMatrix_row = np.zeros(tableau.LP.AMatrix.shape[1])
+        AMatrix_row[whichVariable] = sign
+        tableau.LP.AMatrix = np.vstack((tableau.LP.AMatrix, AMatrix_row))
         tableau.LP.RHS = np.append(tableau.LP.RHS, abs_val)
 
-        #input_string = self.generate_input_string(tableau, new_line)
         return tableau
 
     def PLNE(self):
@@ -155,8 +112,8 @@ class BranchAndBound(Simplexe):
 
         # Print the best solution found after searching all nodes
         if best_tableau:
-            print("Best solution found")
-            best_tableau.PrintTableau("Best Branch and Bound Solution")
+            print("\nBest solution found")
+            best_tableau.PrintTableau("Best BnB Solution")
             print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
     
     def reorder(self, tableau):
