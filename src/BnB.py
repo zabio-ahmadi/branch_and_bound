@@ -49,6 +49,7 @@ class BranchAndBound(Simplexe):
         tableau.NumRows += 1
         tableau._Simplexe__basicVariables = np.append(tableau._Simplexe__basicVariables, np.max(tableau._Simplexe__basicVariables)+1)
         tableau._Simplexe__basicVariables = np.where(tableau._Simplexe__basicVariables >= tableau.NumCols, tableau._Simplexe__basicVariables + 1, tableau._Simplexe__basicVariables)
+        input_string = self.generate_input_string(tableau, new_line)
         return tableau
 
 
@@ -125,7 +126,26 @@ class BranchAndBound(Simplexe):
         best_tableau.PrintTableau("Best Branch and Bound Solution")
         print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
 
+    def generate_input_string(self, tableau, new_line):
+        numRows, numCols = tableau._Simplexe__tableau.shape
 
+        # Generate objective function string
+        obj_str = "max;" + ";".join(map(str, tableau.LP.Costs)) + ";"
+
+        # Generate constraint strings
+        constraint_strs = []
+        for i in range(tableau.LP.AMatrix.shape[0]):
+            constraint_str = ";".join(map(str, tableau.LP.AMatrix[i])) + ";<=" + ";" + str(tableau.LP.RHS[i]) + ";"
+            constraint_strs.append(constraint_str)
+
+        # Add the new constraint
+        new_constraint_str = ";".join(map(str, new_line[:-1])) + ";<=" + ";" + str(new_line[-1]) + ";"
+        constraint_strs.append(new_constraint_str)
+
+        # Combine all parts of the input string
+        input_string = obj_str + "\n" + "\n".join(constraint_strs) + "\n"
+
+        return input_string
 
     def round_numpy_array(self, arr: 'BranchAndBound', decimals=6):
         # convert the array to a floating-point type
