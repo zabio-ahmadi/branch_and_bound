@@ -16,11 +16,12 @@ import sys
 
 class Simplexe:
   def __init__(self):
-    self.IsPhaseI = False
-    self.__isRemovingAuxVariables = False
-    self.__PivotCount = 0
-    self.__PhaseIPivotCount = 0
-    self.__PrintDetails = False
+    self.IsPhaseI: bool = False
+    self.__isRemovingAuxVariables: bool = False
+    self.__PivotCount: int = 0
+    self.__PhaseIPivotCount: int = 0
+    self.__PrintDetails: bool = False
+    self.__tableau: np.ndarray = np.empty((0, 0))
 
   def LoadFromFile(self, lpFileName, printDetails):
     print("-----entering LoadFromFile")

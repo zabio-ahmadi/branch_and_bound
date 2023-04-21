@@ -10,6 +10,12 @@ from src.constants import *
 from math import floor, ceil
 from typing import *
 
+from numba import njit
+
+import numpy.typing as npt
+
+TableauArray = np.dtype([('name', 'U10'), ('value', float)], align=True)
+
 class BranchAndBound(Simplexe):
     def __init__(self):
         super().__init__()
@@ -25,7 +31,35 @@ class BranchAndBound(Simplexe):
         print("------------- finish PLNE")
         #self.PrintSolution()
 
-    def create_bounds(self, tableau: 'BranchAndBound', isLeft: bool = True) -> 'BranchAndBound':
+    def create_bounds(self, tableau: 'BranchAndBound', isLeft=True):
+        whichRow = tableau.index[tableau.depth % len(tableau.index)]
+        whichVariable = tableau.depth
+        rhs_val = tableau._Simplexe__tableau[whichRow][-1]
+        abs_val = floor(rhs_val) if isLeft else -1 * ceil(rhs_val)
+        new_line = [0] * (len(tableau._Simplexe__tableau[0]) - 1) + [1] + [abs_val]
+        sign = 1 if isLeft else -1
+        new_line[whichVariable] = sign
+
+        tableau._Simplexe__tableau = np.hstack((tableau._Simplexe__tableau[:, :-1], np.atleast_2d([0] * len(tableau._Simplexe__tableau)).T, tableau._Simplexe__tableau[:, -1:]))
+
+        tableau._Simplexe__tableau = np.vstack((tableau._Simplexe__tableau[:-1], new_line, tableau._Simplexe__tableau[-1:]))
+
+        if isLeft:
+            tableau._Simplexe__tableau[-2] -= tableau._Simplexe__tableau[whichRow]
+        else:
+            tableau._Simplexe__tableau[-2] += tableau._Simplexe__tableau[whichRow]
+        tableau.NumCols += 1
+        tableau.NumRows += 1
+        tableau._Simplexe__basicVariables = np.append(tableau._Simplexe__basicVariables, np.max(tableau._Simplexe__basicVariables)+1)
+        tableau._Simplexe__basicVariables = np.where(tableau._Simplexe__basicVariables >= tableau.NumCols, tableau._Simplexe__basicVariables + 1, tableau._Simplexe__basicVariables)
+        
+        #tableau.LP.AMatrix = np.vstack((tableau.LP.AMatrix, np.array([sign * (whichVariable==0), sign * (whichVariable==1)])))
+        #tableau.LP.RHS = np.append(tableau.LP.RHS, abs_val)
+
+        #input_string = self.generate_input_string(tableau, new_line)
+        return tableau
+
+    def create_bounds2(self, tableau: 'BranchAndBound', isLeft: bool = True) -> 'BranchAndBound':
         whichRow = tableau.index[tableau.depth % len(tableau.index)]
         whichVariable = tableau.depth
         rhs_val = tableau._Simplexe__tableau[whichRow][-1]
@@ -82,12 +116,12 @@ class BranchAndBound(Simplexe):
 
             #node = self.round_numpy_array(node)
             #node = self.reorder(node)
-            #node.PrintTableau("before solve")
-            node.OptStatus == OptStatus.Unknown
+            node.PrintTableau("before solve")
+            #node.OptStatus == OptStatus.Unknown
             #node.initPhaseI(deepcopy(node))
             #node._Simplexe__solvePhaseI()
-            node._Simplexe__solveProblem(OptStatus.Unknown)
-            #node = self.solve_tableau(node)
+            #node._Simplexe__solveProblem(OptStatus.Unknown)
+            node = self.solve_tableau(node)
             node.PrintTableau("after solve")
 
             objval = node.ObjValue()
@@ -162,38 +196,46 @@ class BranchAndBound(Simplexe):
 
         return arr
 
-
-    def pivot(self, tableau: 'BranchAndBound', row: int, col: int) -> 'BranchAndBound':
+    def pivot1(self, tableau: 'BranchAndBound', row: int, col: int) -> 'BranchAndBound':
         tableau._Simplexe__tableau[row, :] /= tableau._Simplexe__tableau[row, col]
-        for i in range(tableau._Simplexe__tableau.shape[0]):
-            if i != row:
-                tableau._Simplexe__tableau[i, :] -= tableau._Simplexe__tableau[i, col] * tableau._Simplexe__tableau[row, :]
+        tableau._Simplexe__tableau[np.arange(tableau._Simplexe__tableau.shape[0]) != row, :] -= tableau._Simplexe__tableau[np.arange(tableau._Simplexe__tableau.shape[0]) != row, col][:, np.newaxis] * tableau._Simplexe__tableau[row, :]
+
+
+    def pivot(self, value: np.ndarray, row: int, col: int) -> None:
+        pivot_row: np.ndarray = value[row, :]
+        pivot_row /= pivot_row[col]
+        rows_to_update = np.arange(value.shape[0]) != row
+        value[rows_to_update, :] -= value[rows_to_update, col, np.newaxis] * pivot_row
 
     def solve_tableau(self, tableau: 'BranchAndBound') -> 'BranchAndBound':
         while True:
             row, col = self.find_pivot(tableau)
             if row is None:
                 break
-            self.pivot(tableau, row, col)
-        #tableau = self.round_numpy_array(tableau)
+            t1 = time.time()
+            self.pivot(tableau._Simplexe__tableau, row, col)
+            t2 = time.time()
+            print("pivot time",t2-t1)
+        tableau = self.round_numpy_array(tableau)
         return tableau
 
     def find_pivot(self, tableau: 'BranchAndBound') -> tuple[int, int]:
-        #tableau.PrintTableau("find pivot")
-        mask = tableau._Simplexe__basicVariables >= tableau.NumCols
-        t = tableau._Simplexe__tableau[:-1]
-        row_with_min = np.argmin(t[mask, tableau.NumCols-1])
-        col = np.argmin(tableau._Simplexe__tableau[row_with_min, :-1])
-        if tableau._Simplexe__tableau[row_with_min, col] >= 0:
+        # Find the first row with a negative right-hand-side value
+        rhs = tableau._Simplexe__tableau[:-1, -1]
+        rows_with_negative_rhs = rhs < 0
+        if not np.any(rows_with_negative_rhs):
             return None, None
+        row_with_min_rhs = np.argmin(rhs[rows_with_negative_rhs])
+        pivot_row = np.arange(tableau._Simplexe__tableau.shape[0] - 1)[rows_with_negative_rhs][row_with_min_rhs]
 
-        rows_with_positive_coeff = tableau._Simplexe__tableau[:-1, col] > 0
-        if not np.any(rows_with_positive_coeff):
+        # Find the column with the highest ratio of column value to objective function value
+        cols_with_negative_entries = tableau._Simplexe__tableau[pivot_row, :-1] < 0
+        if not np.any(cols_with_negative_entries):
             return None, None
+        ratios = tableau._Simplexe__tableau[-1, :-1][cols_with_negative_entries] / tableau._Simplexe__tableau[pivot_row, :-1][cols_with_negative_entries]
+        pivot_col = np.arange(tableau._Simplexe__tableau.shape[1] - 1)[cols_with_negative_entries][np.argmax(ratios)]
 
-        ratio = tableau._Simplexe__tableau[:-1, -1][rows_with_positive_coeff] / tableau._Simplexe__tableau[:-1, col][rows_with_positive_coeff]
-        row = np.argmin(ratio)
-        return np.arange(tableau._Simplexe__tableau.shape[0] - 1)[rows_with_positive_coeff][row], col
+        return pivot_row, pivot_col
 
 
 if "__main__" == __name__:
