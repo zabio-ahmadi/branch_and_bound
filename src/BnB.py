@@ -8,29 +8,29 @@ class BranchAndBound(Simplexe):
     Mixed Integer Linear Programming (MILP) problems using the Branch and Bound algorithm.
 
     Attributes:
-        index (List): A list containing the indices of the basic variables.
-        depth (int): The depth of the current node in the branch and bound tree.
+        - index (List): A list containing the indices of the basic variables.
+        - depth (int): The depth of the current node in the branch and bound tree.
 
     Methods:
-        go(lpFileName: str, printDetails: bool = False) -> None:
+        - go(lpFileName: str, printDetails: bool = False) -> None:
             Loads a linear programming problem from a file and solves it using the Branch and Bound method.
 
-        create_bounds(node: 'BranchAndBound', isLeft: bool = True) -> None:
+        - create_bounds(node: 'BranchAndBound', isLeft: bool = True) -> None:
             Creates bounds for the left or right child nodes in the branch and bound tree.
 
-        PLNE() -> None:
+        - PLNE() -> None:
             Implements the Branch and Bound algorithm to solve the Mixed Integer Linear Programming problem.
 
-        round_numpy_array(arr: np.ndarray, decimals: int = 6) -> np.ndarray:
+        - round_numpy_array(arr: np.ndarray, decimals: int = 6) -> np.ndarray:
             Rounds the elements of a numpy array to a specified number of decimal places.
 
-        pivot(tab: np.ndarray, row: int, col: int) -> None:
+        - pivot(tab: np.ndarray, row: int, col: int) -> None:
             Performs a pivot operation on the given tableau.
 
-        solve_tableau(tableau: 'BranchAndBound') -> 'BranchAndBound':
+        - solve_tableau(tableau: 'BranchAndBound') -> 'BranchAndBound':
             Solves a given tableau using the Simplex method.
 
-        find_pivot(tableau: np.ndarray) -> tuple[int, int]:
+        - find_pivot(tableau: np.ndarray) -> tuple[int, int]:
             Finds the pivot element in the given tableau.
     """
 
@@ -44,6 +44,14 @@ class BranchAndBound(Simplexe):
 
     # ------------------------------------------------------------------------------------ go
     def go(self, lpFileName: str, printDetails: bool = False) -> None:
+        """
+        Load the linear programming problem from the given file and solve it using the simplex method.
+        Afterward, round the tableau, print it, and solve the problem using the Branch and Bound method.
+
+        Args:
+            - lpFileName (str): The name of the file containing the linear programming problem.
+            - printDetails (bool, optional): Whether to print details while solving the problem. Defaults to False.
+        """
         self._Simplexe__PrintDetails = printDetails
         self.LoadFromFile(lpFileName, printDetails) # loads file and solves it with the simplex method
         #self = self.round_numpy_array(self)
@@ -59,22 +67,22 @@ class BranchAndBound(Simplexe):
         Create and update the tableau with bounds based on the given branching node.
         
         Description:
-            This method creates a new constraint for the tableau based on the given node, depth and isLeft flag.
+            - This method creates a new constraint for the tableau based on the given node, depth and isLeft flag.
             The branching is done based on the node's depth and index. The new constraint is appended to the tableau,
             and the tableau is updated accordingly.
 
         Arguments:
-            node (BranchAndBound): A branching node of the branch and bound algorithm.
-            isLeft (bool, optional): A flag indicating whether to create a left (True) or right (False) bound. Defaults to True.
+            - node (BranchAndBound): A branching node of the branch and bound algorithm.
+            - isLeft (bool, optional): A flag indicating whether to create a left (True) or right (False) bound. Defaults to True.
 
         Returns:
-            None
+            - None
 
         Steps:
-            1. Find the row and variable that will be used to create the new constraint.
-            2. Create a new constraint line based on the found row, variable, and isLeft flag.
-            3. Update the tableau by adding the new constraint.
-            4. Adjust the basic variables and other attributes of the node accordingly.
+            - 1. Find the row and variable that will be used to create the new constraint.
+            - 2. Create a new constraint line based on the found row, variable, and isLeft flag.
+            - 3. Update the tableau by adding the new constraint.
+            - 4. Adjust the basic variables and other attributes of the node accordingly.
 
         Notes:
             - The input node is modified in-place.
@@ -82,8 +90,8 @@ class BranchAndBound(Simplexe):
             - The method assumes that the input node's tableau and other attributes are valid and up-to-date.
 
         Raises:
-            ValueError: If the input node's tableau is not a 2D numpy array or has an incorrect shape.
-            ValueError: If he node's depth or index attributes have incorrect types or values.
+            - ValueError: If the input node's tableau is not a 2D numpy array or has an incorrect shape.
+            - ValueError: If he node's depth or index attributes have incorrect types or values.
         """
 
         # Retrieve the tableau from the input node
@@ -135,24 +143,24 @@ class BranchAndBound(Simplexe):
         using the branch and bound algorithm.
 
         Description:
-            This method finds an optimal solution to the mixed-integer linear programming problem by recursively 
+            - This method finds an optimal solution to the mixed-integer linear programming problem by recursively 
             creating and exploring nodes in a search tree using the branch and bound algorithm. The method starts 
             with a relaxed linear programming problem, and at each node of the search tree, it creates two 
             branches with integer constraints. The search continues until a feasible integer solution is found 
             or the maximum number of iterations is reached.
 
         Arguments:
-            None
+            - None
 
         Returns:
-            None
+            - None
 
         Steps:
-            1. Check if the current node has an integer objective value and no negative right-hand-side values.
-            2. If the current node has an integer objective value, update the best solution if necessary.
-            3. If the current node has a non-integer objective value and all right-hand-side values are non-negative,
+            - 1. Check if the current node has an integer objective value and no negative right-hand-side values.
+            - 2. If the current node has an integer objective value, update the best solution if necessary.
+            - 3. If the current node has a non-integer objective value and all right-hand-side values are non-negative,
             create two child nodes with updated bounds and continue the search.
-            4. Repeat steps 1-3 until all nodes have been explored or the maximum number of iterations is reached.
+            - 4. Repeat steps 1-3 until all nodes have been explored or the maximum number of iterations is reached.
 
         Notes:
             - This method should be called after the initial linear programming problem has been solved using the simplex method.
@@ -175,23 +183,23 @@ class BranchAndBound(Simplexe):
             Update the list of nodes by creating new nodes with modified bounds based on the current node.
 
             Arguments:
-                params node: 'BranchAndBound' - The current node of the BranchAndBound class.
-                list_node: List - A list containing the nodes to be processed.
+                - params node ('BranchAndBound'): The current node of the BranchAndBound class.
+                - list_node (List): A list containing the nodes to be processed.
 
             Returns:
-                list_node: List - The updated list of nodes with the new nodes added.
+                - list_node (List): The updated list of nodes with the new nodes added.
 
             Steps:
-                1. Create an index list of the current node's basic variables.
-                2. Deepcopy the current node and create left and right children by modifying the bounds.
-                3. Increment the depth of left and right children.
-                4. Add the left and right children to the list of nodes.
-                5. Clear the index list of the current node.
+                - 1. Create an index list of the current node's basic variables.
+                - 2. Deepcopy the current node and create left and right children by modifying the bounds.
+                - 3. Increment the depth of left and right children.
+                - 4. Add the left and right children to the list of nodes.
+                - 5. Clear the index list of the current node.
 
             Raises:
-                TypeError: If 'node' is not an instance of BranchAndBound class.
-                TypeError: If 'list_node' is not a list.
-                ValueError: If 'node.index' contains elements that are not integers.
+                - TypeError: If 'node' is not an instance of BranchAndBound class.
+                - TypeError: If 'list_node' is not a list.
+                - ValueError: If 'node.index' contains elements that are not integers.
             """
             if not isinstance(node, BranchAndBound):
                 raise TypeError("node must be an instance of BranchAndBound class")
@@ -267,20 +275,19 @@ class BranchAndBound(Simplexe):
         Round the elements of a given numpy array up to the specified number of decimal places.
 
         Args:
-            arr (np.ndarray): The input numpy array to be rounded.
-            decimals (int, optional): The number of decimal places to round to. Defaults to 6.
+            - arr (np.ndarray): The input numpy array to be rounded.
+            - decimals (int, optional): The number of decimal places to round to. Defaults to 6.
 
         Returns:
-            np.ndarray: The rounded numpy array.
+            - np.ndarray: The rounded numpy array.
 
         Raises:
-            ValueError: If the input is not a numpy array or if decimals is not a non-negative integer.
-            TypeError: If the elements of the input numpy array are not numeric.
+            - ValueError: If the input is not a numpy array or if decimals is not a non-negative integer.
+            - TypeError: If the elements of the input numpy array are not numeric.
 
         Notes:
             - This function rounds the input numpy array in place.
             - Non-numeric elements in the input array are not modified.
-
         """
         if not isinstance(arr, np.ndarray):
             raise ValueError("Input 'arr' must be a numpy array.")
@@ -315,18 +322,18 @@ class BranchAndBound(Simplexe):
         This method modifies the tableau in-place and does not return any value.
 
         Arguments:
-            tab (np.ndarray): The tableau (2D numpy array) to perform the pivot operation on
-            row (int): The row index of the pivot element in the tableau
-            col (int): The column index of the pivot element in the tableau
+            - tab (np.ndarray): The tableau (2D numpy array) to perform the pivot operation on
+            - row (int): The row index of the pivot element in the tableau
+            - col (int): The column index of the pivot element in the tableau
 
         Steps:
-            1. Divide the pivot row by the pivot element to normalize the pivot row.
-            2. Update all other rows by subtracting the appropriate multiple of the normalized pivot row,
+            - 1. Divide the pivot row by the pivot element to normalize the pivot row.
+            - 2. Update all other rows by subtracting the appropriate multiple of the normalized pivot row,
             to eliminate the entries in the pivot column.
 
         Raises:
-            ValueError: If row or col are out of bounds for the tableau dimensions
-            ZeroDivisionError: If the pivot element is zero or very close to zero
+            - ValueError: If row or col are out of bounds for the tableau dimensions
+            - ZeroDivisionError: If the pivot element is zero or very close to zero
 
         Notes:
             - The pivot operation is a fundamental operation in the simplex method for linear programming.
@@ -351,15 +358,15 @@ class BranchAndBound(Simplexe):
         Solves a given tableau using the simplex method.
 
         Arguments:
-            tableau (BranchAndBound): The BranchAndBound object containing the tableau to be solved.
+            - tableau (BranchAndBound): The BranchAndBound object containing the tableau to be solved.
 
         Returns:
-            BranchAndBound: The solved BranchAndBound object containing the updated tableau.
+            - BranchAndBound: The solved BranchAndBound object containing the updated tableau.
 
         Steps:
-            1. Find the pivot element.
-            2. Perform the pivot operation.
-            3. Continue the process until the tableau is optimized or a warning is raised.
+            - 1. Find the pivot element.
+            - 2. Perform the pivot operation.
+            - 3. Continue the process until the tableau is optimized or a warning is raised.
 
         Notes:
             - The method modifies the given BranchAndBound object in-place.
@@ -367,8 +374,8 @@ class BranchAndBound(Simplexe):
             - If no optimal solution is found, it raises a warning.
 
         Raises:
-            ValueError: If the tableau is not in the correct format (should be a 2D numpy array).
-            Warning: If no optimal solution is found.
+            - ValueError: If the tableau is not in the correct format (should be a 2D numpy array).
+            - Warning: If no optimal solution is found.
         """
         if not isinstance(tableau, BranchAndBound):
             raise ValueError("The input must be a BranchAndBound object.")
@@ -401,7 +408,7 @@ class BranchAndBound(Simplexe):
         Find the pivot row and column in the given tableau for the Branch and Bound method.
 
         Description:
-            This method finds the first row with a negative right-hand-side value, and then
+            - This method finds the first row with a negative right-hand-side value, and then
             chooses the column with the highest ratio of column value to the objective function
             value in that row.
 
@@ -413,8 +420,8 @@ class BranchAndBound(Simplexe):
             pivot is found, the function returns (None, None).
 
         Steps:
-            1. Find the first row with a negative right-hand-side value.
-            2. Find the column with the highest ratio of column value to the objective function
+            - 1. Find the first row with a negative right-hand-side value.
+            - 2. Find the column with the highest ratio of column value to the objective function
             value in the row found in step 1.
 
         Raises:

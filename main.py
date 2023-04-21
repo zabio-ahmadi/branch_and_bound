@@ -8,11 +8,6 @@ from src.BnB import BranchAndBound
 
 filename = "examples/lp_glaces.txt"
 
-#splx = Simplexe()
-# set log level to True to print intermediate tableaus
-#splx.LoadFromFile(filename, False)
-
-
 
 
 if "__main__" == __name__:
