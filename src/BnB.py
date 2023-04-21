@@ -111,12 +111,13 @@ class BranchAndBound(Simplexe):
 
         # Calculate the right-hand-side value of the new constraint
         rhs_val = tab[whichRow][-1]
-        abs_val = np.floor(rhs_val) if isLeft else -1 * np.ceil(rhs_val)
+        abs_val = np.floor(rhs_val) if isLeft else np.ceil(rhs_val)
 
         # Create a new constraint line based on the row, variable, and isLeft flag
         new_line = [0] * (tab.shape[1] - 1) + [1] + [abs_val]
         sign = 1.0 if isLeft else -1.0
         new_line[whichVariable] = sign
+        new_line[-1] *= sign
 
         # Update the tableau by adding the new constraint
         tab = np.hstack((tab[:, :-1], np.atleast_2d([0] * tab.shape[0]).T, tab[:, -1:]))
