@@ -1,7 +1,5 @@
 import numpy as np
-from os.path import isfile
-import time, sys, math
-from enum import Enum
+import time
 from copy import deepcopy
 
 from src.simplexe import *
