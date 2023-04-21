@@ -11,19 +11,27 @@ import os.path
 from os import path
 from src.constants import Constants, OptimizationType, OptStatus, PivotMode
 from src.lp import LP
-import time
-import sys
+import time, sys
+from typing import List, Optional
 
 class Simplexe:
-  def __init__(self):
+  def __init__(self) -> None:
     self.IsPhaseI: bool = False
     self.__isRemovingAuxVariables: bool = False
-    self.__PivotCount: int = 0
-    self.__PhaseIPivotCount: int = 0
+    self.__PivotCount: int = 0  # Nbr pivots Phase II
+    self.__PhaseIPivotCount: int = 0  # Nbr pivots Phase I
     self.__PrintDetails: bool = False
-    self.__tableau: np.ndarray = np.empty((0, 0))
+    #self.__tableau: np.ndarray = None
+    #self.__basicVariables: np.ndarray = None
+    #self.NumRows: int = 0
+    #self.NumCols: int = 0
+    self.LP: Optional[LP] = None
+    self.OptStatus: OptStatus = OptStatus.Unknown
+    self.__start: float = 0.0 # timing start
+    self.__end: float = 0.0 # timing end
 
-  def LoadFromFile(self, lpFileName, printDetails):
+
+  def LoadFromFile(self, lpFileName: str, printDetails: bool = False):
     print("-----entering LoadFromFile")
     self.FileName = lpFileName
     self.__PrintDetails = printDetails == True
@@ -37,7 +45,7 @@ class Simplexe:
     self.LP.PrintProblem()
     self.__solveProblem()
 
-  def LoadFromString(self, inputString, printDetails):
+  def LoadFromString(self, inputString: str, printDetails: bool = False):
     print("-----entering LoadFromString")
     self.__PrintDetails = printDetails
     self.LP = LP(inputString, True)
@@ -93,7 +101,7 @@ class Simplexe:
 
 
 
-  def PrintTableau(self, header):
+  def PrintTableau(self, header: str):
     print("------------------------------------------------")
     print("Simplex tableau: ", header, " Opt status: ", self.OptStatus)
     print("------------------------------------------------")
@@ -147,10 +155,10 @@ class Simplexe:
     #print("Total exec time [s] : ", self.__end - self.__start)
     print("------------------------------------------------")
 
-  def __padStr(self, str):
+  def __padStr(self, str: str):
       return str.ljust(8, " ")
 
-  def __varName(self, colId):
+  def __varName(self, colId: int):
     if colId < 0:
       return "* OBJ_0 *"
     if colId < self.NumCols:
@@ -197,7 +205,7 @@ class Simplexe:
     # all basic variables are >= 0, 
     return True
 
-  def __getBasicVariableValue(self, rowId, baseColId):
+  def __getBasicVariableValue(self, rowId: int, baseColId: int):
       # the value of the basic variable is RHS / coeff in basic variable's colum
       return self.__tableau[rowId, -1] / self.__tableau[rowId, baseColId]
 
@@ -228,7 +236,7 @@ class Simplexe:
     self.__PhaseIPivotCount = phaseISplx.__PivotCount
     self.OptStatus = OptStatus.Feasible
 
-  def initPhaseI(self, simplexe):
+  def initPhaseI(self, simplexe: 'Simplexe'):
     print("-----entering initPhaseI")
     # create augmented tableau for Phase I => current
    	# -- Original -----		# -- Auxiliary -----
@@ -337,7 +345,7 @@ class Simplexe:
 
   # returns next pivot as an array of leaving row id and entering col Id - argument is the pivot mode (one of PivotMode enum)
   # return None if there is pivot (sets optimisation status accoringly before returning)
-  def __selectPivot(self, pivotMode):  
+  def __selectPivot(self, pivotMode: PivotMode):  
     colId = self.__selectEnteringColumn(pivotMode)
     if (colId < 0):
       # no more entering column => optimiser status is OPTIMAL (must be - we never select a pivot if the tableau is unfeasible)
@@ -354,7 +362,7 @@ class Simplexe:
 
   # returns index of entering col Id depending on the chosen pivot mode passed as argument (one of PivotMode enum)
   # return -1 if there is pivot
-  def __selectEnteringColumn(self, pivotMode):
+  def __selectEnteringColumn(self, pivotMode: PivotMode):
     match pivotMode:
       case PivotMode.FirstNegative:
         # return index of first column that has negative reduced cost (i.e. negative value in LAST row) - except the LAST column
@@ -376,7 +384,7 @@ class Simplexe:
 
   # returns leaving row ID 
   # return None if there is pivot (sets optimisation status accoringly before returning)
-  def __selectLeavingRow(self, pivotColId):
+  def __selectLeavingRow(self, pivotColId: int):
     minVal = None
     rowId = -1 
     # iterate over all columns except the last one and compute the ratio - make sure that in Phase 1 we also skip the original objective function!
