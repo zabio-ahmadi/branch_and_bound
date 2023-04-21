@@ -52,6 +52,7 @@ class BranchAndBound(Simplexe):
             - lpFileName (str): The name of the file containing the linear programming problem.
             - printDetails (bool, optional): Whether to print details while solving the problem. Defaults to False.
         """
+
         self._Simplexe__PrintDetails = printDetails
         self.LoadFromFile(lpFileName, printDetails) # loads file and solves it with the simplex method
         #self = self.round_numpy_array(self)
@@ -204,7 +205,6 @@ class BranchAndBound(Simplexe):
             """
             if not isinstance(node, BranchAndBound):
                 raise TypeError("node must be an instance of BranchAndBound class")
-            
             if not isinstance(list_node, list):
                 raise TypeError("list_node must be a list")
 
@@ -290,9 +290,9 @@ class BranchAndBound(Simplexe):
             - This function rounds the input numpy array in place.
             - Non-numeric elements in the input array are not modified.
         """
+
         if not isinstance(arr, np.ndarray):
             raise ValueError("Input 'arr' must be a numpy array.")
-
         if not isinstance(decimals, int) or decimals < 0:
             raise ValueError("Input 'decimals' must be a non-negative integer.")
 
@@ -340,10 +340,12 @@ class BranchAndBound(Simplexe):
             - The pivot operation is a fundamental operation in the simplex method for linear programming.
             - It is used to iteratively improve the current solution until an optimal solution is found.
         """
+
         if row < 0 or row >= tab.shape[0] or col < 0 or col >= tab.shape[1]:
             raise ValueError("Row or column index out of bounds for the tableau dimensions.")
 
         pivot_element = tab[row, col]
+
         if np.isclose(pivot_element, 0):
             raise ZeroDivisionError("Pivot element is zero or very close to zero. Cannot perform pivot operation.")
 
@@ -378,6 +380,7 @@ class BranchAndBound(Simplexe):
             - ValueError: If the tableau is not in the correct format (should be a 2D numpy array).
             - Warning: If no optimal solution is found.
         """
+
         if not isinstance(tableau, BranchAndBound):
             raise ValueError("The input must be a BranchAndBound object.")
         
@@ -435,12 +438,12 @@ class BranchAndBound(Simplexe):
             programming problems.
             - The tableau must be a 2D numpy array containing at least two rows and two columns.
         """
+
+        # Error checking
         if not isinstance(tableau, np.ndarray):
             raise ValueError("Input 'tableau' must be a numpy array.")
-
         if tableau.ndim != 2:
             raise ValueError("Input 'tableau' must be a 2D numpy array.")
-            
         if tableau.shape[0] < 2 or tableau.shape[1] < 2:
             raise ValueError("Input 'tableau' must have at least two rows and two columns.")
             
