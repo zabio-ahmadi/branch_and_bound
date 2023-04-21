@@ -1,3 +1,15 @@
+"""
+Authors: 
+- Ahmadi (Ahmadi's email)
+- Kurteshi (Kurteshi's email)
+- Stefan Antun (stefan.antun@hes-so.ch, stefan@logicore.ch)
+- Ivan (Ivan's email)
+
+Date: April 21, 2023
+
+Description: This script implements the Branch and Bound algorithm to solve Mixed Integer Linear Programming (MILP) problems.
+"""
+
 import time, warnings, numpy as np
 from copy import deepcopy
 from src.simplexe import *
@@ -37,6 +49,9 @@ class BranchAndBound(Simplexe):
 
     # ------------------------------------------------------------------------------------ __init__
     def __init__(self):
+        """
+        Initializes a new instance of the BranchAndBound class, inheriting attributes from the Simplexe class.
+        """
         super().__init__()
         self.index: List = []
         self.depth: int = 0
