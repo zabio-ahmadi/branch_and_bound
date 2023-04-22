@@ -55,9 +55,19 @@ class BranchAndBound(Simplexe):
         super().__init__()
         self.index: List = []
         self.depth: int = 0
+        self.DEBUG = False
+
+    def debug(self,mode = True):
+        self.DEBUG = mode
 
 
     # ------------------------------------------------------------------------------------ go
+
+    def print_tableau(self, tableau):
+        np.set_printoptions(suppress=True, linewidth=150)
+        np.savetxt(sys.stdout, tableau, fmt=f"%8.3f")
+        print()
+
     def go(self, lpFileName: str, printDetails: bool = False) -> None:
         """
         Load the linear programming problem from the given file and solve it using the simplex method.
@@ -243,37 +253,39 @@ class BranchAndBound(Simplexe):
         # Initialize values and data structures for the branch and bound search
         objval_max = self.ObjValue()
         temp_node = deepcopy(self)
-        list_node, list_sol, z_PLNE = [], [], float('-inf')
-        iteration, max_iterations = 0, 1000
+        list_node, z_PLNE = [], float('-inf')
+        iteration, max_iterations  = 0, self._Simplexe__tableau.shape[0] 
         list_node = update_nodes(temp_node, list_node)
         best_tableau = None
 
         # Main loop for the branch and bound search
         while list_node and iteration < max_iterations:
-            iteration += 1
             node = list_node.pop(0)
             node = self.solve_tableau(node)
-            node.PrintTableau("after solve")
-
             # Get the objective value and print it
             objval = node.ObjValue()
-            print("objVal after pivots", objval)
+            # self.print_tableau(node._Simplexe__tableau)
 
             # Check if the current node has a better objective value than the best found so far
-            if objval < z_PLNE or objval > objval_max:
+            if objval > objval_max:
                 continue # no need to check anything if current objective value is worse than best
-
+            
+ 
             # Check if the current node has an integer objective value and no negative right-hand-side values
             isInteger = is_almost_integer(objval)
+
+
             if isInteger:
+                iteration += 1
                 if objval > z_PLNE:
                     z_PLNE = objval
                     best_tableau = node
-                    list_sol.append(node)
-                    print("Better solution found")
-                    #node.PrintTableau("Branch and Bound Solution")
-                    print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
-                    exit(0)
+                    if self.DEBUG == True:
+                        print("Better solution found")
+                        self.print_tableau(node._Simplexe__tableau)
+                        print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
+
+
 
             # Update the search tree nodes if the current node has a feasible non-integer solution
             elif all(t >= 0 for t in node._Simplexe__tableau[:-1, -1]):  # Update nodes only when the current node has a feasible solution
@@ -282,7 +294,8 @@ class BranchAndBound(Simplexe):
         # Print the best solution found after searching all nodes
         if best_tableau:
             print("\nBest solution found")
-            best_tableau.PrintTableau("Best BnB Solution")
+            self.print_tableau(best_tableau._Simplexe__tableau)
+            # best_tableau.PrintTableau("Best BnB Solution")
             print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
 
 
@@ -415,9 +428,10 @@ class BranchAndBound(Simplexe):
             row, col = self.find_pivot(tab)
             if row is None:
                 break
-
-            self.pivot(tab, row, col)
-            
+            try:
+                self.pivot(tab, row, col)
+            except:
+                break
         tableau = self.round_numpy_array(tableau)
         return tableau
 

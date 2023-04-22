@@ -36,6 +36,7 @@ def main(filename: str, method: str):
         solver.LoadFromFile(filename)
     elif method.lower() == "branchandbound":
         solver = BranchAndBound()
+        solver.debug(False)
         solver.go(filename)
     else:
         print("Invalid method provided. Please choose either 'simplex' or 'branchandbound'.")
@@ -44,7 +45,7 @@ def main(filename: str, method: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Solve linear programming problems using Simplex or Branch and Bound methods.")
-    parser.add_argument("filename", nargs="?", default="examples/lp_glaces.txt", help="Path to the file containing the linear programming problem. Default is 'examples/lp_glaces.txt'.")
+    parser.add_argument("filename", nargs="?", default="examples/lp_sample.txt", help="Path to the file containing the linear programming problem. Default is 'examples/lp_glaces.txt'.")
     parser.add_argument("--method", default="branchandbound", help="Method for solving the problem: 'simplex' or 'branchandbound'. Default is 'branchandbound'.")
     args = parser.parse_args()
 

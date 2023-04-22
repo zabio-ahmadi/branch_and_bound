@@ -62,7 +62,6 @@ class Simplexe:
   def __solveProblem(self, optstatus=-1):
     if optstatus != -1:
       self.OptStatus = OptStatus.Unknown
-    print("-----entering __solveProblem", self.OptStatus)
     self.__start = time.time()
     if self.OptStatus == OptStatus.Unknown: self.__initTableau()
     # make sure we have a feasible solution - go to PhaseI
@@ -111,8 +110,11 @@ class Simplexe:
     varNames.append(self.__padStr("* OBJ *"))
     tmpArray = np.array([varNames]).T
     tableau = np.append(tmpArray, self.__tableau.copy(), axis=1)
-    with np.printoptions(precision=3, suppress=True, linewidth=np.inf):
-      print(tableau)
+    # with np.printoptions(precision=3, suppress=True, linewidth=np.inf):
+    #   print(tableau)
+    np.set_printoptions(suppress=True, linewidth=150)
+    np.savetxt(sys.stdout, self.__tableau, fmt=f"%8.3f")
+    print()
     
   def ObjValue(self):
     objVal = self.__tableau[-1, -1]
@@ -311,7 +313,6 @@ class Simplexe:
       #self.PrintTableau("After pivot")
       
   def __pivotTableau(self, pivotIDs):
-    print("-----entering __pivotTableau")
     if pivotIDs is None or pivotIDs[0] < 0 or pivotIDs[1] < 0:
       # no pivot => optimiser status is updated in pivot selection => return!
       return
