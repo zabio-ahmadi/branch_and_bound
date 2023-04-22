@@ -70,7 +70,7 @@ class BranchAndBound(Simplexe):
 
         self._Simplexe__PrintDetails = printDetails
         self.LoadFromFile(lpFileName, printDetails) # loads file and solves it with the simplex method
-        #self = self.round_numpy_array(self)
+        self = self.round_numpy_array(self)
         self.PrintTableau("before PLNE")
         self.PLNE()
         print("------------- finish PLNE")
@@ -264,7 +264,7 @@ class BranchAndBound(Simplexe):
                 continue # no need to check anything if current objective value is worse than best
 
             # Check if the current node has an integer objective value and no negative right-hand-side values
-            isInteger = is_almost_integer(objval) and not any(t < -1e-6 for t in node._Simplexe__tableau[:-1, -1])
+            isInteger = is_almost_integer(objval)
             if isInteger:
                 if objval > z_PLNE:
                     z_PLNE = objval
@@ -273,6 +273,7 @@ class BranchAndBound(Simplexe):
                     print("Better solution found")
                     #node.PrintTableau("Branch and Bound Solution")
                     print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
+                    exit(0)
 
             # Update the search tree nodes if the current node has a feasible non-integer solution
             elif all(t >= 0 for t in node._Simplexe__tableau[:-1, -1]):  # Update nodes only when the current node has a feasible solution
@@ -286,7 +287,7 @@ class BranchAndBound(Simplexe):
 
 
     # ------------------------------------------------------------------------------------ round_numpy_array
-    def round_numpy_array(self, arr: np.ndarray, decimals: int = 6) -> np.ndarray:
+    def round_numpy_array(self, arr: 'BranchAndBound', decimals: int = 6) -> np.ndarray:
         """
         Round the elements of a given numpy array up to the specified number of decimal places.
 
@@ -306,26 +307,26 @@ class BranchAndBound(Simplexe):
             - Non-numeric elements in the input array are not modified.
         """
 
-        if not isinstance(arr, np.ndarray):
-            raise ValueError("Input 'arr' must be a numpy array.")
-        if not isinstance(decimals, int) or decimals < 0:
-            raise ValueError("Input 'decimals' must be a non-negative integer.")
+        #if not isinstance(arr, np.ndarray):
+        #    raise ValueError("Input 'arr' must be a numpy array.")
+        #if not isinstance(decimals, int) or decimals < 0:
+        #    raise ValueError("Input 'decimals' must be a non-negative integer.")
 
         try:
             # convert the array to a floating-point type
-            arr = arr.astype(float)
+            arr._Simplexe__tableau = arr._Simplexe__tableau.astype(float)
 
             # round the array to a maximum of 6 decimal places
-            arr = np.round(arr, decimals=decimals)
+            arr._Simplexe__tableau = np.round(arr._Simplexe__tableau, decimals=decimals)
 
         except (ValueError, TypeError) as e:
             raise TypeError("All elements of the input numpy array must be numeric.") from e
 
         # convert any non-float values back to strings
-        for i in range(arr.shape[0]):
-            for j in range(arr.shape[1]):
-                if not isinstance(arr[i, j], float):
-                    arr[i, j] = str(arr[i, j])
+        for i in range(arr._Simplexe__tableau.shape[0]):
+            for j in range(arr._Simplexe__tableau.shape[1]):
+                if not isinstance(arr._Simplexe__tableau[i, j], float):
+                    arr._Simplexe__tableau[i, j] = str(arr._Simplexe__tableau[i, j])
 
         return arr
 
@@ -417,7 +418,7 @@ class BranchAndBound(Simplexe):
 
             self.pivot(tab, row, col)
             
-        tab = self.round_numpy_array(tab)
+        tableau = self.round_numpy_array(tableau)
         return tableau
 
 
