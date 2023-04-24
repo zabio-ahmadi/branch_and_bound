@@ -134,6 +134,7 @@ class BranchAndBound(Simplexe):
         # Determine the row and variable for creating the new constraint
         whichRow = node.index[node.depth % len(node.index)]
         whichVariable = node.depth
+        whichVariable = idx = np.where(tab[whichRow] == 1.0)[0][0]
 
         # Calculate the right-hand-side value of the new constraint
         rhs_val = tab[whichRow][-1]
@@ -148,6 +149,7 @@ class BranchAndBound(Simplexe):
         # Update the tableau by adding the new constraint
         tab = np.hstack((tab[:, :-1], np.atleast_2d([0] * tab.shape[0]).T, tab[:, -1:]))
         tab = np.vstack((tab[:-1], new_line, tab[-1:]))
+        self.print_tableau(tab)
 
         # Adjust the tableau according to the new constraint
         if isLeft:
@@ -155,6 +157,7 @@ class BranchAndBound(Simplexe):
         else:
             tab[-2] += tab[whichRow]
         
+        self.print_tableau(tab)
         # Update the node's attributes accordingly
         node.NumCols += 1
         node.NumRows += 1
@@ -233,7 +236,12 @@ class BranchAndBound(Simplexe):
             if not isinstance(list_node, list):
                 raise TypeError("list_node must be a list")
 
-            node.index = [i for i in range(len(node._Simplexe__basicVariables)) if node._Simplexe__basicVariables[i] < node.NumCols]
+            node.PrintTableau("calc node index")
+            rhs_column = node._Simplexe__tableau[:-1,-1].copy()
+            rhs_only_frac, _ = np.modf(rhs_column)
+            non_int_idxs = np.nonzero(rhs_only_frac)[0]
+            #node.index = [i for i in range(len(node._Simplexe__basicVariables)) if node._Simplexe__basicVariables[i] < node.NumCols]
+            node.index = [i for i in range(len(node._Simplexe__basicVariables)) if i in non_int_idxs and node._Simplexe__basicVariables[i] < node.NumCols]
             
             if not all(isinstance(i, int) for i in node.index):
                 raise ValueError("node.index should only contain integers")
