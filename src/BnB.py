@@ -56,6 +56,7 @@ class BranchAndBound(Simplexe):
         self.index: List = []
         self.depth: int = 0
         self.DEBUG = False
+        self.start_time = time.time()
 
     def debug(self,mode = True):
         self.DEBUG = mode
@@ -86,6 +87,7 @@ class BranchAndBound(Simplexe):
         self.PrintTableau("before PLNE")
         self.PLNE()
         print("------------- finish PLNE")
+        print("execution time: {:.3f} sec".format(time.time() - self.start_time))
         #self.PrintSolution()
 
 
