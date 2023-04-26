@@ -64,9 +64,11 @@ class BranchAndBound(Simplexe):
     # ------------------------------------------------------------------------------------ go
 
     def print_tableau(self, tableau):
+        tableau = np.where(np.abs(tableau) < 1e-10, 0, tableau) # Replace -0 and 0 with 0
         np.set_printoptions(suppress=True, linewidth=150)
         np.savetxt(sys.stdout, tableau, fmt=f"%8.3f")
         print()
+
 
     def go(self, lpFileName: str, printDetails: bool = False) -> None:
         """
@@ -132,38 +134,37 @@ class BranchAndBound(Simplexe):
             raise ValueError("The input node's index must be a list of integers.")
 
         # Determine the row and variable for creating the new constraint
-        whichRow = node.index[node.depth % len(node.index)]
-        whichVariable = node.depth
-        whichVariable = idx = np.where(tab[whichRow] == 1.0)[0][0]
+        if len(node.index) > 0 : 
+            whichRow = node.index[node.depth % len(node.index)]
+            whichVariable = node.depth
+            whichVariable = idx = np.where(tab[whichRow] == 1.0)[0][0]
 
-        # Calculate the right-hand-side value of the new constraint
-        rhs_val = tab[whichRow][-1]
-        abs_val = np.floor(rhs_val) if isLeft else np.ceil(rhs_val)
+            # Calculate the right-hand-side value of the new constraint
+            rhs_val = tab[whichRow][-1]
+            abs_val = np.floor(rhs_val) if isLeft else np.ceil(rhs_val)
 
-        # Create a new constraint line based on the row, variable, and isLeft flag
-        new_line = [0] * (tab.shape[1] - 1) + [1] + [abs_val]
-        sign = 1.0 if isLeft else -1.0
-        new_line[whichVariable] = sign
-        new_line[-1] *= sign
+            # Create a new constraint line based on the row, variable, and isLeft flag
+            new_line = [0] * (tab.shape[1] - 1) + [1] + [abs_val]
+            sign = 1.0 if isLeft else -1.0
+            new_line[whichVariable] = sign
+            new_line[-1] *= sign
 
-        # Update the tableau by adding the new constraint
-        tab = np.hstack((tab[:, :-1], np.atleast_2d([0] * tab.shape[0]).T, tab[:, -1:]))
-        tab = np.vstack((tab[:-1], new_line, tab[-1:]))
-        self.print_tableau(tab)
+            # Update the tableau by adding the new constraint
+            tab = np.hstack((tab[:, :-1], np.atleast_2d([0] * tab.shape[0]).T, tab[:, -1:]))
+            tab = np.vstack((tab[:-1], new_line, tab[-1:]))
 
-        # Adjust the tableau according to the new constraint
-        if isLeft:
-            tab[-2] -= tab[whichRow]
-        else:
-            tab[-2] += tab[whichRow]
-        
-        self.print_tableau(tab)
-        # Update the node's attributes accordingly
-        node.NumCols += 1
-        node.NumRows += 1
-        node._Simplexe__basicVariables = np.append(node._Simplexe__basicVariables, np.max(node._Simplexe__basicVariables)+1)
-        node._Simplexe__basicVariables = np.where(node._Simplexe__basicVariables >= node.NumCols, node._Simplexe__basicVariables + 1, node._Simplexe__basicVariables)
-        node._Simplexe__tableau = tab
+            # Adjust the tableau according to the new constraint
+            if isLeft:
+                tab[-2] -= tab[whichRow]
+            else:
+                tab[-2] += tab[whichRow]
+            
+            # Update the node's attributes accordingly
+            node.NumCols += 1
+            node.NumRows += 1
+            node._Simplexe__basicVariables = np.append(node._Simplexe__basicVariables, np.max(node._Simplexe__basicVariables)+1)
+            node._Simplexe__basicVariables = np.where(node._Simplexe__basicVariables >= node.NumCols, node._Simplexe__basicVariables + 1, node._Simplexe__basicVariables)
+            node._Simplexe__tableau = tab
 
 
     # ------------------------------------------------------------------------------------ PLNE
@@ -204,7 +205,7 @@ class BranchAndBound(Simplexe):
         # ------------------------------------------------------------------------------------ PLNE.is_almost_integer
         def is_almost_integer(num: float, threshold: float = 0.01) -> bool:
             """ Helper function to determine if a number is close to an integer within a given threshold """
-            return abs(num - round(num)) < threshold
+            return (-1 * threshold < abs(num - round(num)) < threshold)
 
 
         # ------------------------------------------------------------------------------------ PLNE.update_nodes
@@ -236,7 +237,6 @@ class BranchAndBound(Simplexe):
             if not isinstance(list_node, list):
                 raise TypeError("list_node must be a list")
 
-            node.PrintTableau("calc node index")
             rhs_column = node._Simplexe__tableau[:-1,-1].copy()
             rhs_only_frac, _ = np.modf(rhs_column)
             non_int_idxs = np.nonzero(rhs_only_frac)[0]
@@ -249,6 +249,7 @@ class BranchAndBound(Simplexe):
             left_tableau, right_tableau = deepcopy(node), deepcopy(node)
             self.create_bounds(left_tableau, True)
             self.create_bounds(right_tableau, False)
+
             left_tableau.depth += 1
             right_tableau.depth += 1
             list_node.append(left_tableau)
@@ -262,17 +263,17 @@ class BranchAndBound(Simplexe):
         objval_max = self.ObjValue()
         temp_node = deepcopy(self)
         list_node, z_PLNE = [], float('-inf')
-        iteration, max_iterations  = 0, self._Simplexe__tableau.shape[0] 
+        iteration, max_iterations  = 0,1000
         list_node = update_nodes(temp_node, list_node)
         best_tableau = None
 
         # Main loop for the branch and bound search
         while list_node and iteration < max_iterations:
             node = list_node.pop(0)
+            
             node = self.solve_tableau(node)
             # Get the objective value and print it
             objval = node.ObjValue()
-            # self.print_tableau(node._Simplexe__tableau)
 
             # Check if the current node has a better objective value than the best found so far
             if objval > objval_max:
@@ -285,10 +286,11 @@ class BranchAndBound(Simplexe):
 
             if isInteger:
                 iteration += 1
+                # if current node is better than previous best node than change it
                 if objval > z_PLNE:
                     z_PLNE = objval
                     best_tableau = node
-                    if self.DEBUG == True:
+                    if self.DEBUG:
                         print("Better solution found")
                         self.print_tableau(node._Simplexe__tableau)
                         print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
