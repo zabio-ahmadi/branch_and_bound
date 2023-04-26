@@ -1,2 +1,5 @@
 src/__pycache__/*
 .venv
+.vscode
+__pycache__
+src/__pycache__
