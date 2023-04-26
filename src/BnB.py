@@ -57,6 +57,7 @@ class BranchAndBound(Simplexe):
         self.depth: int = 0
         self.DEBUG = False
         self.start_time = time.time()
+        self.list_sol = []
 
     def debug(self,mode = True):
         self.DEBUG = mode
@@ -85,10 +86,12 @@ class BranchAndBound(Simplexe):
         self.LoadFromFile(lpFileName, printDetails) # loads file and solves it with the simplex method
         self = self.round_numpy_array(self)
         self.PrintTableau("before PLNE")
+        print("------------- start PLNE")
         self.PLNE()
-        print("------------- finish PLNE")
+
+        print("\ninteger solutions:", [float("{:.2f}".format(x)) for x in self.list_sol])
         print("execution time: {:.3f} sec".format(time.time() - self.start_time))
-        #self.PrintSolution()
+        print("\n------------- finish PLNE")
 
 
     # ------------------------------------------------------------------------------------ create_bounds
@@ -288,14 +291,16 @@ class BranchAndBound(Simplexe):
 
             if isInteger:
                 iteration += 1
+                self.list_sol.append(objval)
+                if self.DEBUG:
+                    print("Integer solution found")
+                    self.print_tableau(node._Simplexe__tableau)
+                    print("OBJECTIVE VALUE : {:.2f} \n".format(objval))
+
                 # if current node is better than previous best node than change it
                 if objval > z_PLNE:
                     z_PLNE = objval
                     best_tableau = node
-                    if self.DEBUG:
-                        print("Better solution found")
-                        self.print_tableau(node._Simplexe__tableau)
-                        print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
 
 
 
@@ -305,9 +310,8 @@ class BranchAndBound(Simplexe):
 
         # Print the best solution found after searching all nodes
         if best_tableau:
-            print("\nBest solution found")
+            print("\nBest Integer solution")
             self.print_tableau(best_tableau._Simplexe__tableau)
-            # best_tableau.PrintTableau("Best BnB Solution")
             print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
 
 
