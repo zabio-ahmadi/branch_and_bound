@@ -102,7 +102,7 @@ Best Integer solution
 
 OBJECTIVE VALUE : 25.00
 solution Depth 2
-Number of node ignored 1
+Number of node ignored 2
 integer solutions: [24.0, 18.0, 25.0]
 execution time: 0.005 sec
 
