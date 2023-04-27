@@ -213,10 +213,9 @@ class BranchAndBound(Simplexe):
         def profondeur_arbre_binaire(arbre, i=0):
             if i >= len(arbre) or arbre[i] is None:
                 return 0
-
             gauche = profondeur_arbre_binaire(arbre, 2 * i + 1)
             droit = profondeur_arbre_binaire(arbre, 2 * i + 2)
-
+            
             return max(gauche, droit) + 1
 
 
@@ -227,6 +226,22 @@ class BranchAndBound(Simplexe):
             """ Helper function to determine if a number is close to an integer within a given threshold """
             return (-1 * threshold < abs(num - round(num)) < threshold)
 
+
+        def is_2d_array_in_list(node, lst_node):
+            """
+            Check if a 2D array exists in a list of nodes.
+
+            Returns:
+            bool: True if the 2D array exists in the list of nodes, False otherwise.
+            """
+            # Iterate over each node in the list of nodes
+            for sub_lst in lst_node:
+                # Compare the 2D array of the current node with the 2D array of the search node
+                if np.array_equal(node._Simplexe__tableau, sub_lst._Simplexe__tableau):
+                    # If they match, return True
+                    return True
+            # If the loop completes without finding a match, return False
+            return False
 
         # ------------------------------------------------------------------------------------ PLNE.update_nodes
         def update_nodes(node: 'BranchAndBound', list_node: List) -> List:
@@ -272,8 +287,10 @@ class BranchAndBound(Simplexe):
 
             left_tableau.depth += 1
             right_tableau.depth += 1
-            list_node.append(left_tableau)
-            list_node.append(right_tableau)
+            if not is_2d_array_in_list(left_tableau, list_node): 
+                list_node.append(left_tableau)
+            if not is_2d_array_in_list(right_tableau, list_node): 
+                list_node.append(right_tableau)
 
             node.index = []
             return list_node
@@ -283,7 +300,7 @@ class BranchAndBound(Simplexe):
         objval_max = self.ObjValue()
         temp_node = deepcopy(self)
         list_node, z_PLNE = [], float('-inf')
-        iteration, max_iterations  = 0,1e4
+        iteration, max_iterations  = 0,1000
         list_node = update_nodes(temp_node, list_node)
         
         best_tableau = None
@@ -291,8 +308,7 @@ class BranchAndBound(Simplexe):
 
 
         # Main loop for the branch and bound search
-        nb_node_fr_ignored = 0 
-        nb_node_int_ignored = 0 
+        nb_node_ignored = 0 
         while list_node and iteration < max_iterations:
             # todo:read from end from start, random 
             # statistique de nombre de noeud suprimmé 
@@ -307,22 +323,18 @@ class BranchAndBound(Simplexe):
 
             # Check if the current node has a better objective value than the best found so far
             if objval > objval_max:
-                nb_node_fr_ignored += 1
+                nb_node_ignored
                 continue # no need to check anything if current objective value is worse than best
             
- 
+
             # Check if the current node has an integer objective value and no negative right-hand-side values
             isInteger = is_almost_integer(objval)
             iteration += 1
-
             if isInteger:
-                
+                for element in list_node:  # parcours tous les éléments du tableau d'entrée
+                    temp_array.append(element)
                 self.list_sol.append(objval)
                 if self.DEBUG:
-                    for element in list_node:  # parcours tous les éléments du tableau d'entrée
-                        temp_array.append(element)
-                        
-                 
                     print("Integer solution found")
                     self.print_tableau(node._Simplexe__tableau)
                     print("OBJECTIVE VALUE : {:.2f} ".format(objval))
@@ -334,7 +346,7 @@ class BranchAndBound(Simplexe):
                     z_PLNE = objval
                     best_tableau = node
                 else: 
-                    nb_node_int_ignored += 1
+                    nb_node_ignored += 1
                     continue
 
 
@@ -349,7 +361,7 @@ class BranchAndBound(Simplexe):
             self.print_tableau(best_tableau._Simplexe__tableau)
             print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
             print("solution Depth", profondeur_arbre_binaire(temp_array))
-            print(f"Number of node ignored {nb_node_int_ignored}")
+            print(f"Number of node ignored {nb_node_ignored}")
     # ------------------------------------------------------------------------------------ round_numpy_array
     def round_numpy_array(self, arr: 'BranchAndBound', decimals: int = 6) -> np.ndarray:
         """
