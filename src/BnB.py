@@ -310,12 +310,10 @@ class BranchAndBound(Simplexe):
         # Main loop for the branch and bound search
         nb_node_ignored = 0
         while list_node and iteration < max_iterations:
-            # todo:read from end from start, random 
-            # statistique de nombre de noeud suprimmé 
             # random_index = random.randint(0, len(list_node) - 1)
             # node = list_node.pop(random_element) # remove random 
-            # node = list_node.pop(0) # remove from begining 
-            node = list_node.pop() # remove from end 
+            node = list_node.pop(0) # remove from begining 
+            # node = list_node.pop() # remove from end 
             
             node = self.solve_tableau(node)
             # Get the objective value and print it
