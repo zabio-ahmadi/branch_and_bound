@@ -1,25 +1,28 @@
 # **Linear Programming Solver with Simplex Algorithm and Branch-and-Bound**
 
-This is a Python program that solves linear programming problems using the simplex algorithm with branch-and-bound to find integer values for x variables. The program takes a linear programming problem in standard form as input and outputs the optimal solution and optimal value.
+This is a program written in Python that is used to solve linear programming problems. The program utilizes the simplex algorithm, which is an optimization algorithm that aims to find the optimal solution to a problem, while satisfying certain constraints.
+
+In addition to the simplex algorithm, the program also employs a technique called branch-and-bound, which is used to find integer values for the variables (referred to as "x variables"). This technique works by breaking down a problem into smaller sub-problems, and solving them iteratively to find the optimal integer solution.
 
 ### **Requirements**
 
 - Python 3.10.x
 - NumPy library
 
-### **Run the program:**
-
-```bash
-$ python3.10 main.py examples/lp_glaces.txt
-```
-
 ### **notes**
 
-you can active the debug option from main.py:
+you can active the debug option from main.py
+
 the debug options will print intermediary tables.
 
 ```py
 solver.debug(True)
+```
+
+### **Run the program:**
+
+```bash
+$ python3.10 main.py examples/lp_glaces.txt
 ```
 
 ### **Result**
