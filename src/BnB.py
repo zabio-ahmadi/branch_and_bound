@@ -308,7 +308,7 @@ class BranchAndBound(Simplexe):
 
 
         # Main loop for the branch and bound search
-        nb_node_ignored = 0 
+        nb_node_ignored = 0
         while list_node and iteration < max_iterations:
             # todo:read from end from start, random 
             # statistique de nombre de noeud suprimmé 
@@ -323,7 +323,6 @@ class BranchAndBound(Simplexe):
 
             # Check if the current node has a better objective value than the best found so far
             if objval > objval_max:
-                nb_node_ignored
                 continue # no need to check anything if current objective value is worse than best
             
 
@@ -361,7 +360,7 @@ class BranchAndBound(Simplexe):
             self.print_tableau(best_tableau._Simplexe__tableau)
             print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
             print("solution Depth", profondeur_arbre_binaire(temp_array))
-            print(f"Number of node ignored {nb_node_ignored}")
+            print(f"Number of node ignored {nb_node_ignored + 1}")
     # ------------------------------------------------------------------------------------ round_numpy_array
     def round_numpy_array(self, arr: 'BranchAndBound', decimals: int = 6) -> np.ndarray:
         """
