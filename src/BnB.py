@@ -283,7 +283,7 @@ class BranchAndBound(Simplexe):
         objval_max = self.ObjValue()
         temp_node = deepcopy(self)
         list_node, z_PLNE = [], float('-inf')
-        iteration, max_iterations  = 0,1000
+        iteration, max_iterations  = 0,1e4
         list_node = update_nodes(temp_node, list_node)
         
         best_tableau = None
@@ -307,16 +307,16 @@ class BranchAndBound(Simplexe):
 
             # Check if the current node has a better objective value than the best found so far
             if objval > objval_max:
-                nb_node_fr_ignored
+                nb_node_fr_ignored += 1
                 continue # no need to check anything if current objective value is worse than best
             
  
             # Check if the current node has an integer objective value and no negative right-hand-side values
             isInteger = is_almost_integer(objval)
-
+            iteration += 1
 
             if isInteger:
-                iteration += 1
+                
                 self.list_sol.append(objval)
                 if self.DEBUG:
                     for element in list_node:  # parcours tous les éléments du tableau d'entrée
@@ -326,7 +326,7 @@ class BranchAndBound(Simplexe):
                     print("Integer solution found")
                     self.print_tableau(node._Simplexe__tableau)
                     print("OBJECTIVE VALUE : {:.2f} ".format(objval))
-                    print("solution Depth", profondeur_arbre_binaire(temp_array))
+                    print("solution Depth", profondeur_arbre_binaire(temp_array), "\n")
           
 
                 # if current node is better than previous best node than change it

@@ -37,7 +37,7 @@ def main(filename: str, method: str):
     elif method.lower() == "branchandbound":
 
         solver = BranchAndBound()
-        solver.debug(True)
+        solver.debug(False)
         solver.go(filename)
     else:
         print("Invalid method provided. Please choose either 'simplex' or 'branchandbound'.")
