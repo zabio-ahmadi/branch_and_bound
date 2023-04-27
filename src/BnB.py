@@ -13,6 +13,10 @@ Description: This script implements the Branch and Bound algorithm to solve Mixe
 import time, warnings, numpy as np
 from copy import deepcopy
 from src.simplexe import *
+import random
+
+
+temp_array = []
 
 class BranchAndBound(Simplexe):
     """
@@ -89,7 +93,7 @@ class BranchAndBound(Simplexe):
         print("------------- start PLNE")
         self.PLNE()
 
-        print("\ninteger solutions:", [float("{:.2f}".format(x)) for x in self.list_sol])
+        print("integer solutions:", [float("{:.2f}".format(x)) for x in self.list_sol])
         print("execution time: {:.3f} sec".format(time.time() - self.start_time))
         print("\n------------- finish PLNE")
 
@@ -206,6 +210,17 @@ class BranchAndBound(Simplexe):
             - TypeError: If any of the inputs to the helper functions are not of the correct type.
         """
 
+        def profondeur_arbre_binaire(arbre, i=0):
+            if i >= len(arbre) or arbre[i] is None:
+                return 0
+
+            gauche = profondeur_arbre_binaire(arbre, 2 * i + 1)
+            droit = profondeur_arbre_binaire(arbre, 2 * i + 2)
+
+            return max(gauche, droit) + 1
+
+
+
 
         # ------------------------------------------------------------------------------------ PLNE.is_almost_integer
         def is_almost_integer(num: float, threshold: float = 0.01) -> bool:
@@ -270,11 +285,21 @@ class BranchAndBound(Simplexe):
         list_node, z_PLNE = [], float('-inf')
         iteration, max_iterations  = 0,1000
         list_node = update_nodes(temp_node, list_node)
+        
         best_tableau = None
+        
+
 
         # Main loop for the branch and bound search
+        nb_node_fr_ignored = 0 
+        nb_node_int_ignored = 0 
         while list_node and iteration < max_iterations:
-            node = list_node.pop(0)
+            # todo:read from end from start, random 
+            # statistique de nombre de noeud suprimmé 
+            # random_index = random.randint(0, len(list_node) - 1)
+            # node = list_node.pop(random_element) # remove random 
+            # node = list_node.pop(0) # remove from begining 
+            node = list_node.pop() # remove from end 
             
             node = self.solve_tableau(node)
             # Get the objective value and print it
@@ -282,6 +307,7 @@ class BranchAndBound(Simplexe):
 
             # Check if the current node has a better objective value than the best found so far
             if objval > objval_max:
+                nb_node_fr_ignored
                 continue # no need to check anything if current objective value is worse than best
             
  
@@ -293,14 +319,23 @@ class BranchAndBound(Simplexe):
                 iteration += 1
                 self.list_sol.append(objval)
                 if self.DEBUG:
+                    for element in list_node:  # parcours tous les éléments du tableau d'entrée
+                        temp_array.append(element)
+                        
+                 
                     print("Integer solution found")
                     self.print_tableau(node._Simplexe__tableau)
-                    print("OBJECTIVE VALUE : {:.2f} \n".format(objval))
+                    print("OBJECTIVE VALUE : {:.2f} ".format(objval))
+                    print("solution Depth", profondeur_arbre_binaire(temp_array))
+          
 
                 # if current node is better than previous best node than change it
                 if objval > z_PLNE:
                     z_PLNE = objval
                     best_tableau = node
+                else: 
+                    nb_node_int_ignored += 1
+                    continue
 
 
 
@@ -313,8 +348,8 @@ class BranchAndBound(Simplexe):
             print("\nBest Integer solution")
             self.print_tableau(best_tableau._Simplexe__tableau)
             print("OBJECTIVE VALUE : {:.2f}".format(z_PLNE))
-
-
+            print("solution Depth", profondeur_arbre_binaire(temp_array))
+            print(f"Number of node ignored {nb_node_int_ignored}")
     # ------------------------------------------------------------------------------------ round_numpy_array
     def round_numpy_array(self, arr: 'BranchAndBound', decimals: int = 6) -> np.ndarray:
         """
